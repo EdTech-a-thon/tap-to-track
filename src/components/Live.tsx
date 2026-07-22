@@ -1,28 +1,8 @@
-import {
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ChangeEvent,
-  type ReactNode,
-} from "react";
-import {
-  achievementDisplay,
-  achievementOptions,
-  assessableSkills,
-  parentSummary,
-  parentSummaryText,
-  rapidAssessmentReducer,
-} from "../assessment";
+import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type ChangeEvent, type ReactNode } from "react";
+import { achievementDisplay, achievementOptions, assessableSkills, parentSummary, parentSummaryText, rapidAssessmentReducer } from "../assessment";
 import { dataStore, RequestError } from "../data";
 import { participationInsights } from "../participation";
-import {
-  groupRequestLanes,
-  requestAlert,
-  unseenRequestIds,
-} from "../requestRail";
+import { groupRequestLanes, requestAlert, unseenRequestIds } from "../requestRail";
 import {
   exactStudentId,
   filterRoster,
@@ -35,40 +15,11 @@ import {
   type RosterFilter,
 } from "../roster";
 import { useApp } from "../state";
-import {
-  centerSeats,
-  clampSeat,
-  defaultSeatPositions,
-  fitSeats,
-  screenToSeat,
-  seatBounds,
-  SEAT_CARD_HEIGHT,
-  SEAT_CARD_WIDTH,
-  unionSeatBounds,
-} from "../seating";
-import {
-  topLevelSkills,
-  type Achievement,
-  type Lens,
-  type PeriodType,
-  type Student,
-} from "../types";
+import { centerSeats, clampSeat, defaultSeatPositions, fitSeats, logicalRoomForZoom, screenToSeat, seatBounds, SEAT_CARD_HEIGHT, SEAT_CARD_WIDTH, unionSeatBounds } from "../seating";
+import { topLevelSkills, type Achievement, type Lens, type PeriodType, type Student } from "../types";
 import { StudentGrid, StudentTile } from "./StudentGrid";
 
-const readSavedZoom = (classId: string) => {
-  const value = Number(localStorage.getItem(`seating-zoom:${classId}`));
-  return Number.isFinite(value) && value >= 0.05 && value <= 1.5 ? value : null;
-};
-
-export function Live({
-  initialPeriodId = "",
-  initialAttendance = false,
-  onBack,
-}: {
-  initialPeriodId?: string;
-  initialAttendance?: boolean;
-  onBack?: () => void;
-}) {
+export function Live({ initialPeriodId = "", initialAttendance = false, onBack }: { initialPeriodId?: string; initialAttendance?: boolean; onBack?: () => void }) {
   const { snapshot, lens, setLens, setSnapshot, setError } = useApp();
   const [attendanceMode, setAttendanceMode] = useState(initialAttendance);
   const [mapMode, setMapMode] = useState(
@@ -78,10 +29,7 @@ export function Live({
   const [skillId, setSkillId] = useState("");
   const [skillStudentId, setSkillStudentId] = useState("");
   const [assessmentStudentId, setAssessmentStudentId] = useState("");
-  const [rapid, dispatchRapid] = useReducer(rapidAssessmentReducer, {
-    status: "idle",
-    target: "meets",
-  });
+  const [rapid, dispatchRapid] = useReducer(rapidAssessmentReducer, { status: "idle", target: "meets" });
   const [feedback, setFeedback] = useState<{
     studentId: string;
     type: "positive" | "redirect";
@@ -100,39 +48,26 @@ export function Live({
     const saved = snapshot
       ? localStorage.getItem(`roster-density:${snapshot.classRoom.id}`)
       : null;
-    return saved === "comfortable" ||
-      saved === "compact" ||
-      saved === "overview"
+    return saved === "comfortable" || saved === "compact" || saved === "overview"
       ? saved
-      : rosterDensity(
-          snapshot?.students.filter((student) => !student.archived).length ?? 0,
-          matchMedia("(orientation: landscape)").matches,
-        );
+      : rosterDensity(snapshot?.students.filter((student) => !student.archived).length ?? 0, matchMedia("(orientation: landscape)").matches);
   });
   const [highlightedStudentId, setHighlightedStudentId] = useState("");
   const [actionStudentId, setActionStudentId] = useState("");
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [mapScale, setMapScale] = useState(1);
   const [fitMap, setFitMap] = useState(true);
-  const [zoomFromStorage, setZoomFromStorage] = useState(false);
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [finishAttendanceWarning, setFinishAttendanceWarning] = useState(false);
   const [reopenWarning, setReopenWarning] = useState(false);
-  const [mapViewportSize, setMapViewportSize] = useState({
-    width: 0,
-    height: 0,
-  });
+  const [mapViewportSize, setMapViewportSize] = useState({ width: 0, height: 0 });
   const rosterStartRef = useRef<HTMLElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const mapViewportRef = useRef<HTMLDivElement>(null);
   const mapCanvasRef = useRef<HTMLDivElement>(null);
-  const dragOffsetRef = useRef({
-    x: SEAT_CARD_WIDTH / 2,
-    y: SEAT_CARD_HEIGHT / 2,
-  });
+  const dragOffsetRef = useRef({ x: SEAT_CARD_WIDTH / 2, y: SEAT_CARD_HEIGHT / 2 });
   useEffect(() => {
-    const openSeating =
-      sessionStorage.getItem("open-seating-arrange") === snapshot?.classRoom.id;
+    const openSeating = sessionStorage.getItem("open-seating-arrange") === snapshot?.classRoom.id;
     if (openSeating) sessionStorage.removeItem("open-seating-arrange");
     setAttendanceMode(initialAttendance);
     setSkillId("");
@@ -148,23 +83,16 @@ export function Live({
     setHighlightedStudentId("");
     setActionStudentId("");
     setMapMode(openSeating || snapshot?.classRoom.settings.layout === "map");
-    const saved = snapshot ? readSavedZoom(snapshot.classRoom.id) : null;
-    setMapScale(saved ?? 1);
-    setFitMap(saved === null);
-    setZoomFromStorage(saved !== null);
+    const savedScale = snapshot ? Number(localStorage.getItem(`seating-zoom:${snapshot.classRoom.id}`)) : NaN;
+    setMapScale(Number.isFinite(savedScale) && savedScale >= 0.05 && savedScale <= 1.5 ? savedScale : 1);
+    setFitMap(!Number.isFinite(savedScale));
     const savedDensity = snapshot
       ? localStorage.getItem(`roster-density:${snapshot.classRoom.id}`)
       : null;
     setDensity(
-      savedDensity === "comfortable" ||
-        savedDensity === "compact" ||
-        savedDensity === "overview"
+      savedDensity === "comfortable" || savedDensity === "compact" || savedDensity === "overview"
         ? savedDensity
-        : rosterDensity(
-            snapshot?.students.filter((student) => !student.archived).length ??
-              0,
-            matchMedia("(orientation: landscape)").matches,
-          ),
+        : rosterDensity(snapshot?.students.filter((student) => !student.archived).length ?? 0, matchMedia("(orientation: landscape)").matches),
     );
   }, [snapshot?.classRoom.id, initialAttendance, initialPeriodId]);
   useEffect(() => {
@@ -181,10 +109,12 @@ export function Live({
     const viewport = mapViewportRef.current;
     if (!mapMode || !viewport) return;
     const measure = () => {
-      setMapViewportSize({
-        width: viewport.clientWidth,
-        height: viewport.clientHeight,
-      });
+      if (!mapFullscreen) {
+        const browserHeight = window.visualViewport?.height ?? window.innerHeight;
+        const availableHeight = Math.max(180, browserHeight - viewport.getBoundingClientRect().top - 12);
+        viewport.style.height = `${Math.min(500, availableHeight)}px`;
+      }
+      setMapViewportSize({ width: viewport.clientWidth, height: viewport.clientHeight });
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -202,8 +132,7 @@ export function Live({
     const exit = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setMapFullscreen(false);
-      if (document.fullscreenElement)
-        void document.exitFullscreen().catch(() => undefined);
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
     };
     document.body.classList.add("seating-fullscreen-open");
     addEventListener("keydown", exit);
@@ -217,19 +146,13 @@ export function Live({
       if (!document.fullscreenElement) setMapFullscreen(false);
     };
     document.addEventListener("fullscreenchange", syncFullscreen);
-    return () =>
-      document.removeEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
   }, []);
   const prepared = useMemo(() => {
     if (!snapshot) return null;
-    const activePeriod = snapshot.periods.find(
-      (item) => item.status === "live",
-    );
-    const period =
-      snapshot.periods.find((item) => item.id === viewPeriodId) ?? activePeriod;
-    const activeStudents = snapshot.students.filter(
-      (student) => !student.archived,
-    );
+    const activePeriod = snapshot.periods.find((item) => item.status === "live");
+    const period = snapshot.periods.find((item) => item.id === viewPeriodId) ?? activePeriod;
+    const activeStudents = snapshot.students.filter((student) => !student.archived);
     const attendanceByStudent = new Map(
       snapshot.attendance
         .filter((item) => item.periodId === period?.id)
@@ -242,28 +165,16 @@ export function Live({
       events.push(event);
       eventsByStudent.set(event.studentId, events);
     }
-    const eventCounts = new Map<
-      string,
-      { positive: number; redirect: number }
-    >();
+    const eventCounts = new Map<string, { positive: number; redirect: number }>();
     for (const [studentId, events] of eventsByStudent) {
       eventCounts.set(studentId, {
         positive: events.filter((event) => event.type === "part+").length,
         redirect: events.filter((event) => event.type === "part-").length,
       });
     }
-    const requestsByStudent = new Map(
-      snapshot.requests.map((item) => [item.studentId, item]),
-    );
-    const requestTypesById = new Map(
-      snapshot.requestTypes.map((item) => [item.id, item]),
-    );
-    const masteryByStudentSkill = new Map(
-      snapshot.mastery.map((item) => [
-        `${item.studentId}\u0000${item.skillId}`,
-        item,
-      ]),
-    );
+    const requestsByStudent = new Map(snapshot.requests.map((item) => [item.studentId, item]));
+    const requestTypesById = new Map(snapshot.requestTypes.map((item) => [item.id, item]));
+    const masteryByStudentSkill = new Map(snapshot.mastery.map((item) => [`${item.studentId}\u0000${item.skillId}`, item]));
     const parentSkills = topLevelSkills(snapshot.skills);
     const assessedSkills = assessableSkills(snapshot.skills);
     const masteryCounts = new Map<string, number>();
@@ -271,99 +182,33 @@ export function Live({
       masteryCounts.set(
         student.id,
         assessedSkills.filter((skill) => {
-          const achievement = masteryByStudentSkill.get(
-            `${student.id}\u0000${skill.id}`,
-          )?.achievement;
+          const achievement = masteryByStudentSkill.get(`${student.id}\u0000${skill.id}`)?.achievement;
           return achievement === "meets" || achievement === "exceeds";
         }).length,
       );
     }
-    const insights = participationInsights(
-      activeStudents,
-      snapshot.periods,
-      snapshot.attendance,
-      snapshot.events,
-      snapshot.classRoom.settings,
-    );
-    const insightsByStudent = new Map(
-      insights.map((item) => [item.studentId, item]),
-    );
+    const insights = participationInsights(activeStudents, snapshot.periods, snapshot.attendance, snapshot.events, snapshot.classRoom.settings);
+    const insightsByStudent = new Map(insights.map((item) => [item.studentId, item]));
     const notHeard = new Set(
       activeStudents
-        .filter(
-          (student) =>
-            (eventCounts.get(student.id)?.positive ?? 0) === 0 &&
-            (attendanceByStudent.get(student.id) ?? "present") === "present",
-        )
+        .filter((student) => (eventCounts.get(student.id)?.positive ?? 0) === 0 && (attendanceByStudent.get(student.id) ?? "present") === "present")
         .map((student) => student.id),
     );
-    const checkIn = new Set(
-      insights
-        .filter((item) => item.status === "needs-attention")
-        .map((item) => item.studentId),
-    );
+    const checkIn = new Set(insights.filter((item) => item.status === "needs-attention").map((item) => item.studentId));
     let visibleStudents = mapMode
       ? activeStudents
-      : filterRoster(
-          activeStudents,
-          rosterQuery,
-          rosterFilter,
-          notHeard,
-          checkIn,
-        );
+      : filterRoster(activeStudents, rosterQuery, rosterFilter, notHeard, checkIn);
     if (focusOrder && !mapMode && lens === "participation") {
       const rank = { "needs-attention": 0, building: 1, new: 2, regular: 3 };
-      visibleStudents = [...visibleStudents].sort(
-        (a, b) =>
-          rank[insightsByStudent.get(a.id)!.status] -
-            rank[insightsByStudent.get(b.id)!.status] ||
-          a.displayName.localeCompare(b.displayName),
+      visibleStudents = [...visibleStudents].sort((a, b) =>
+        rank[insightsByStudent.get(a.id)!.status] - rank[insightsByStudent.get(b.id)!.status] ||
+        a.displayName.localeCompare(b.displayName),
       );
     }
-    return {
-      activePeriod,
-      period,
-      activeStudents,
-      attendanceByStudent,
-      eventsByStudent,
-      eventCounts,
-      requestsByStudent,
-      requestTypesById,
-      masteryByStudentSkill,
-      masteryCounts,
-      parentSkills,
-      assessedSkills,
-      insights,
-      insightsByStudent,
-      visibleStudents,
-    };
-  }, [
-    snapshot,
-    viewPeriodId,
-    mapMode,
-    rosterQuery,
-    rosterFilter,
-    focusOrder,
-    lens,
-  ]);
+    return { activePeriod, period, activeStudents, attendanceByStudent, eventsByStudent, eventCounts, requestsByStudent, requestTypesById, masteryByStudentSkill, masteryCounts, parentSkills, assessedSkills, insights, insightsByStudent, visibleStudents };
+  }, [snapshot, viewPeriodId, mapMode, rosterQuery, rosterFilter, focusOrder, lens]);
   if (!snapshot || !prepared) return null;
-  const {
-    activePeriod,
-    period,
-    activeStudents,
-    attendanceByStudent,
-    eventsByStudent,
-    eventCounts,
-    requestsByStudent,
-    requestTypesById,
-    masteryByStudentSkill,
-    masteryCounts,
-    parentSkills,
-    assessedSkills,
-    insights,
-    insightsByStudent,
-    visibleStudents,
-  } = prepared;
+  const { activePeriod, period, activeStudents, attendanceByStudent, eventsByStudent, eventCounts, requestsByStudent, requestTypesById, masteryByStudentSkill, masteryCounts, parentSkills, assessedSkills, insights, insightsByStudent, visibleStudents } = prepared;
   const viewingHistory = Boolean(period && period.status !== "live");
   const today = new Date().toDateString();
   const activeIsToday = activePeriod
@@ -392,20 +237,17 @@ export function Live({
   const selectedParent = selectedSkill?.parentSkillId
     ? snapshot.skills.find((item) => item.id === selectedSkill.parentSkillId)
     : selectedSkill;
-  const selectedIsParent = Boolean(
-    selectedSkill &&
-    snapshot.skills.some((child) => child.parentSkillId === selectedSkill.id),
-  );
+  const selectedIsParent = Boolean(selectedSkill && snapshot.skills.some((child) => child.parentSkillId === selectedSkill.id));
   const skillCategories = Array.from(
     new Set(parentSkills.map((skill) => skill.category || "General")),
   );
-  const masteryProgress = (studentId: string) =>
-    masteryCounts.get(studentId) ?? 0;
+  const masteryProgress = (studentId: string) => masteryCounts.get(studentId) ?? 0;
   const presentCount = activeStudents.filter(
     (student) => attendance(student.id) === "present",
   ).length;
   const absentCount = activeStudents.length - presentCount;
-  const insightFor = (studentId: string) => insightsByStudent.get(studentId)!;
+  const insightFor = (studentId: string) =>
+    insightsByStudent.get(studentId)!;
   const initials = rosterInitials(activeStudents);
   const wholeClassMode = density === "overview" && !mapMode;
   const defaultPositions = defaultSeatPositions(
@@ -417,35 +259,18 @@ export function Live({
     x: student.x ?? defaultPositions[index].x,
     y: student.y ?? defaultPositions[index].y,
   }));
-  // Keep the full saved bounds, including seats placed above or left of the
-  // normal origin, so the transform can center every card in the chart.
   const mapBounds = seatBounds(mapPositions);
   // Leave room for card borders and the map controls so fitted names never clip at the frame edge.
-  const fittedBaseMap = fitSeats(
-    mapBounds,
-    mapViewportSize.width,
-    mapViewportSize.height,
-    mapFullscreen ? 32 : 24,
-  );
-  const effectiveScale = fitMap
-    ? fittedBaseMap.scale
-    : zoomFromStorage
-      ? Math.min(mapScale, fittedBaseMap.scale)
-      : mapScale;
-  const arrangeRoom = seatBounds(defaultPositions);
+  const fittedBaseMap = fitSeats(mapBounds, mapViewportSize.width, mapViewportSize.height, mapFullscreen ? 32 : 24);
+  const effectiveScale = fitMap ? fittedBaseMap.scale : mapScale;
   const logicalBounds = arranging
-    ? unionSeatBounds(arrangeRoom, mapBounds)
+    ? unionSeatBounds(logicalRoomForZoom(mapViewportSize.width, mapViewportSize.height, effectiveScale), mapBounds)
     : mapBounds;
   const roomWidth = Math.max(logicalBounds.width, SEAT_CARD_WIDTH + 56);
   const roomHeight = Math.max(logicalBounds.height, SEAT_CARD_HEIGHT + 56);
   const mapTransform = fitMap
     ? fittedBaseMap
-    : centerSeats(
-        logicalBounds,
-        mapViewportSize.width,
-        mapViewportSize.height,
-        effectiveScale,
-      );
+    : centerSeats(logicalBounds, mapViewportSize.width, mapViewportSize.height, effectiveScale);
 
   const scrollToStudent = (studentId: string) => {
     setHighlightedStudentId(studentId);
@@ -461,10 +286,7 @@ export function Live({
       }
       target.focus({ preventScroll: true });
       window.setTimeout(
-        () =>
-          setHighlightedStudentId((current) =>
-            current === studentId ? "" : current,
-          ),
+        () => setHighlightedStudentId((current) => current === studentId ? "" : current),
         1800,
       );
     });
@@ -551,11 +373,7 @@ export function Live({
       ),
     );
   };
-  const setAssessment = (
-    student: Student,
-    selectedSkillId: string,
-    update: { achievement?: Achievement; requiresSupport?: boolean },
-  ) => {
+  const setAssessment = (student: Student, selectedSkillId: string, update: { achievement?: Achievement; requiresSupport?: boolean }) => {
     if (!period || period.status !== "live") return;
     void save(async () =>
       setSnapshot(
@@ -572,35 +390,25 @@ export function Live({
   };
   const handleSkillTap = (student: Student) => {
     if (!skillId) return setSkillStudentId(student.id);
-    if (snapshot.skills.some((skill) => skill.parentSkillId === skillId))
-      return setSkillStudentId(student.id);
+    if (snapshot.skills.some((skill) => skill.parentSkillId === skillId)) return setSkillStudentId(student.id);
     if (rapid.status === "active") {
       const previous = masteryFor(student.id, skillId);
       setAssessment(student, skillId, { achievement: rapid.target });
-      dispatchRapid({
-        type: "apply",
-        studentId: student.id,
-        previousAchievement: previous.achievement,
-        previousRequiresSupport: previous.requiresSupport,
-      });
+      dispatchRapid({ type: "apply", studentId: student.id, previousAchievement: previous.achievement, previousRequiresSupport: previous.requiresSupport });
       return;
     }
-    setAssessmentStudentId((current) =>
-      current === student.id ? "" : student.id,
-    );
+    setAssessmentStudentId((current) => current === student.id ? "" : student.id);
   };
   const toggleMap = () => {
     const next = !mapMode;
     setMapMode(next);
     if (next) {
-      const saved = readSavedZoom(snapshot.classRoom.id);
-      if (saved !== null) {
-        setMapScale(saved);
+      const savedScale = Number(localStorage.getItem(`seating-zoom:${snapshot.classRoom.id}`));
+      if (Number.isFinite(savedScale) && savedScale >= 0.05 && savedScale <= 1.5) {
+        setMapScale(savedScale);
         setFitMap(false);
-        setZoomFromStorage(true);
       } else {
         setFitMap(true);
-        setZoomFromStorage(false);
       }
     }
     void save(async () =>
@@ -616,13 +424,9 @@ export function Live({
   };
   const setMapZoom = (next: number) => {
     setFitMap(false);
-    setZoomFromStorage(false);
     const scale = Math.min(1.5, Math.max(0.05, next));
     setMapScale(scale);
-    localStorage.setItem(
-      `seating-zoom:${snapshot.classRoom.id}`,
-      String(scale),
-    );
+    localStorage.setItem(`seating-zoom:${snapshot.classRoom.id}`, String(scale));
   };
   const fitAllSeats = () => {
     setFitMap(true);
@@ -635,7 +439,6 @@ export function Live({
     if (next) {
       setMapScale(effectiveScale);
       setFitMap(false);
-      setZoomFromStorage(false);
     } else {
       fitAllSeats();
     }
@@ -643,47 +446,23 @@ export function Live({
   const toggleMapFullscreen = () => {
     const next = !mapFullscreen;
     setMapFullscreen(next);
-    if (next)
-      void workspaceRef.current?.requestFullscreen?.().catch(() => undefined);
-    else if (document.fullscreenElement)
-      void document.exitFullscreen().catch(() => undefined);
+    if (next) void workspaceRef.current?.requestFullscreen?.().catch(() => undefined);
+    else if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
   };
-  const startSeatMove = (
-    student: Student,
-    clientX: number,
-    clientY: number,
-  ) => {
+  const startSeatMove = (student: Student, clientX: number, clientY: number) => {
     const viewport = mapViewportRef.current?.getBoundingClientRect();
     if (!viewport) return;
-    const point = screenToSeat(
-      clientX,
-      clientY,
-      viewport.left,
-      viewport.top,
-      mapTransform,
-    );
+    const point = screenToSeat(clientX, clientY, viewport.left, viewport.top, mapTransform);
     const index = activeStudents.findIndex((item) => item.id === student.id);
     const position = mapPositions[index];
-    dragOffsetRef.current = {
-      x: point.x - position.x,
-      y: point.y - position.y,
-    };
+    dragOffsetRef.current = { x: point.x - position.x, y: point.y - position.y };
   };
   const seatPosition = (student: Student, clientX: number, clientY: number) => {
     const viewport = mapViewportRef.current?.getBoundingClientRect();
     if (!viewport) return;
-    const point = screenToSeat(
-      clientX,
-      clientY,
-      viewport.left,
-      viewport.top,
-      mapTransform,
-    );
+    const point = screenToSeat(clientX, clientY, viewport.left, viewport.top, mapTransform);
     const position = clampSeat(
-      {
-        x: point.x - dragOffsetRef.current.x,
-        y: point.y - dragOffsetRef.current.y,
-      },
+      { x: point.x - dragOffsetRef.current.x, y: point.y - dragOffsetRef.current.y },
       logicalBounds,
     );
     const { x, y } = position;
@@ -710,35 +489,16 @@ export function Live({
   const finishClassDay = async (confirmAttendanceIncomplete = false) => {
     if (!period) return;
     try {
-      setSnapshot(
-        await dataStore.finishPeriod(
-          snapshot.classRoom.id,
-          period.id,
-          confirmAttendanceIncomplete,
-        ),
-      );
+      setSnapshot(await dataStore.finishPeriod(snapshot.classRoom.id, period.id, confirmAttendanceIncomplete));
       setFinishAttendanceWarning(false);
     } catch (error) {
-      if (
-        error instanceof RequestError &&
-        error.code === "ATTENDANCE_INCOMPLETE"
-      )
-        setFinishAttendanceWarning(true);
-      else
-        setError(
-          error instanceof Error
-            ? error.message
-            : "The class day could not be finished.",
-        );
+      if (error instanceof RequestError && error.code === "ATTENDANCE_INCOMPLETE") setFinishAttendanceWarning(true);
+      else setError(error instanceof Error ? error.message : "The class day could not be finished.");
     }
   };
   const reopenClassDay = async () => {
     if (!period) return;
-    await dataStore.mutate(
-      snapshot.classRoom.id,
-      `/classes/${snapshot.classRoom.id}/periods/${period.id}/reopen`,
-      "POST",
-    );
+    await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/periods/${period.id}/reopen`, "POST");
     await dataStore.sync();
     setSnapshot(await dataStore.getSnapshot(snapshot.classRoom.id, true));
     setViewPeriodId(period.id);
@@ -746,10 +506,7 @@ export function Live({
   };
 
   return (
-    <div
-      ref={workspaceRef}
-      className={`live-workspace ${wholeClassMode ? "whole-class" : ""} ${wholeClassMode && activeStudents.length <= 35 ? "whole-class-fits" : ""} ${lens === "participation" ? "participation-workspace" : ""} ${mapMode ? "map-is-active" : ""} ${mapFullscreen ? "map-is-fullscreen" : ""}`}
-    >
+    <div ref={workspaceRef} className={`live-workspace ${wholeClassMode ? "whole-class" : ""} ${wholeClassMode && activeStudents.length <= 35 ? "whole-class-fits" : ""} ${lens === "participation" ? "participation-workspace" : ""} ${mapMode ? "map-is-active" : ""} ${mapFullscreen ? "map-is-fullscreen" : ""}`}>
       {needsNewDay && (
         <NewDayPrompt
           previous={activePeriod!}
@@ -770,11 +527,7 @@ export function Live({
         />
       )}
       <section className="toolbar card">
-        {onBack && (
-          <button className="secondary back-to-today" onClick={onBack}>
-            Back to Today classes
-          </button>
-        )}
+        {onBack && <button className="secondary back-to-today" onClick={onBack}>Back to Today classes</button>}
         <div className="period-picker">
           <label htmlFor="period-view">Class day</label>
           <select
@@ -793,24 +546,14 @@ export function Live({
             {snapshot.periods.map((item) => (
               <option value={item.id} key={item.id}>
                 {item.label}
-                {item.status === "live"
-                  ? " · In progress"
-                  : item.status === "scheduled"
-                    ? " · Scheduled"
-                    : " · Closed"}
+                 {item.status === "live" ? " · In progress" : item.status === "scheduled" ? " · Scheduled" : " · Closed"}
               </option>
             ))}
           </select>
           <span
             className={`status-dot ${!viewingHistory && period ? "live" : ""}`}
           >
-            {period?.status === "live"
-              ? "In progress"
-              : period?.status === "scheduled"
-                ? "Scheduled"
-                : period
-                  ? "Closed"
-                  : "Paused"}
+             {period?.status === "live" ? "In progress" : period?.status === "scheduled" ? "Scheduled" : period ? "Closed" : "Paused"}
           </span>
         </div>
         <div className="segmented" aria-label="Tracking lens">
@@ -833,12 +576,7 @@ export function Live({
             value={skillId}
             onChange={(event) => {
               const nextSkillId = event.target.value;
-              if (
-                rapid.status === "active" &&
-                nextSkillId !== skillId &&
-                !confirm("Exit rapid assessment and switch skills?")
-              )
-                return;
+              if (rapid.status === "active" && nextSkillId !== skillId && !confirm("Exit rapid assessment and switch skills?")) return;
               setSkillId(nextSkillId);
             }}
             aria-label="Skill"
@@ -849,15 +587,12 @@ export function Live({
                 {parentSkills
                   .filter((skill) => (skill.category || "General") === category)
                   .flatMap((skill) => {
-                    const children = snapshot.skills.filter(
-                      (child) => child.parentSkillId === skill.id,
-                    );
+                    const children = snapshot.skills.filter((child) => child.parentSkillId === skill.id);
                     return [
-                      <option key={skill.id} value={skill.id}>
-                        {skill.label}
-                        {children.length ? " · full checklist" : ""}
-                      </option>,
-                      ...children.map((child) => (
+                    <option key={skill.id} value={skill.id}>
+                      {skill.label}{children.length ? " · full checklist" : ""}
+                    </option>,
+                    ...children.map((child) => (
                         <option key={child.id} value={child.id}>
                           {skill.label} / {child.label}
                         </option>
@@ -922,224 +657,62 @@ export function Live({
           </button>
         )}
       </section>
-      {period && (
-        <section
-          className={`class-day-controls ${period.status === "live" ? "live" : "closed"}`}
-        >
-          <div>
-            <strong>
-              {period.status === "live"
-                ? "Class day is in progress"
-                : period.status === "scheduled"
-                  ? "Class day is scheduled"
-                  : "Class day is closed"}
-            </strong>
-            <span>
-              {period.status === "live"
-                ? "Attendance, participation, and skill evidence can be recorded."
-                : period.status === "closed"
-                  ? "Participation actions can be corrected in Insights. Reopen only to change attendance or add skill evidence."
-                  : "Start this class day when teaching begins."}
-            </span>
-          </div>
-          <div className="button-row">
-            <button
-              className="secondary"
-              onClick={() => setEditingPeriod(true)}
-            >
-              Edit details
-            </button>
-            {period.status === "live" ? (
-              <button
-                className="secondary"
-                onClick={() => void finishClassDay()}
-              >
-                Finish class day
-              </button>
-            ) : period.status === "scheduled" ? (
-              <button
-                className="primary"
-                onClick={() =>
-                  save(async () => {
-                    await dataStore.mutate(
-                      snapshot.classRoom.id,
-                      `/classes/${snapshot.classRoom.id}/periods/${period.id}/start`,
-                      "POST",
-                    );
-                    await dataStore.sync();
-                    setSnapshot(
-                      await dataStore.getSnapshot(snapshot.classRoom.id, true),
-                    );
-                    setViewPeriodId(period.id);
-                    setAttendanceMode(true);
-                  })
-                }
-              >
-                Start class day
-              </button>
-            ) : (
-              <button
-                className="primary"
-                onClick={() =>
-                  activePeriod && activePeriod.id !== period.id
-                    ? setReopenWarning(true)
-                    : void save(reopenClassDay)
-                }
-              >
-                Reopen for editing
-              </button>
-            )}
-          </div>
-        </section>
-      )}
-      {finishAttendanceWarning && (
-        <ConfirmDialog
-          title="Finish without completing attendance?"
-          confirmLabel="Finish anyway"
-          onClose={() => setFinishAttendanceWarning(false)}
-          onConfirm={() => finishClassDay(true)}
-        >
-          <p>
-            Attendance has not been marked complete. You can finish anyway, but
-            check the attendance record first if it may be incomplete.
-          </p>
-        </ConfirmDialog>
-      )}
-      {reopenWarning && (
-        <ConfirmDialog
-          title="Close the current live class day?"
-          confirmLabel="Close current day and reopen"
-          onClose={() => setReopenWarning(false)}
-          onConfirm={reopenClassDay}
-        >
-          <p>
-            Reopening {period?.label} will close {activePeriod?.label}, the
-            class day currently in progress.
-          </p>
-        </ConfirmDialog>
-      )}
+        {period && <section className={`class-day-controls ${period.status === "live" ? "live" : "closed"}`}><div><strong>{period.status === "live" ? "Class day is in progress" : period.status === "scheduled" ? "Class day is scheduled" : "Class day is closed"}</strong><span>{period.status === "live" ? "Attendance, participation, and skill evidence can be recorded." : period.status === "closed" ? "Participation actions can be corrected in Insights. Reopen only to change attendance or add skill evidence." : "Start this class day when teaching begins."}</span></div><div className="button-row"><button className="secondary" onClick={() => setEditingPeriod(true)}>Edit details</button>{period.status === "live" ? <button className="secondary" onClick={() => void finishClassDay()}>Finish class day</button> : period.status === "scheduled" ? <button className="primary" onClick={() => save(async () => { await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/periods/${period.id}/start`, "POST"); await dataStore.sync(); setSnapshot(await dataStore.getSnapshot(snapshot.classRoom.id, true)); setViewPeriodId(period.id); setAttendanceMode(true); })}>Start class day</button> : <button className="primary" onClick={() => activePeriod && activePeriod.id !== period.id ? setReopenWarning(true) : void save(reopenClassDay)}>Reopen for editing</button>}</div></section>}
+      {finishAttendanceWarning && <ConfirmDialog title="Finish without completing attendance?" confirmLabel="Finish anyway" onClose={() => setFinishAttendanceWarning(false)} onConfirm={() => finishClassDay(true)}><p>Attendance has not been marked complete. You can finish anyway, but check the attendance record first if it may be incomplete.</p></ConfirmDialog>}
+      {reopenWarning && <ConfirmDialog title="Close the current live class day?" confirmLabel="Close current day and reopen" onClose={() => setReopenWarning(false)} onConfirm={reopenClassDay}><p>Reopening {period?.label} will close {activePeriod?.label}, the class day currently in progress.</p></ConfirmDialog>}
       {lens === "skills" && selectedSkill && (
         <section className="skill-context">
           <strong>
-            {selectedSkill.parentSkillId
-              ? "Subskill"
-              : selectedIsParent
-                ? "Skill family"
-                : "Skill"}
-            : {selectedSkill.label}
+            {selectedSkill.parentSkillId ? "Subskill" : selectedIsParent ? "Skill family" : "Skill"}:{" "}
+            {selectedSkill.label}
           </strong>
           <span>
             {selectedSkill.parentSkillId
-              ? `Parent: ${selectedParent?.label}. Open a learner's selector or use deliberate rapid assessment.`
-              : selectedIsParent
-                ? "Derived from its subskills. Tap a learner to open the full checklist."
-                : "Tap a learner's evidence area to choose an achievement or support flag."}
-          </span>
+               ? `Parent: ${selectedParent?.label}. Open a learner's selector or use deliberate rapid assessment.`
+               : selectedIsParent
+                 ? "Derived from its subskills. Tap a learner to open the full checklist."
+                 : "Tap a learner's evidence area to choose an achievement or support flag."}
+           </span>
+         </section>
+       )}
+      {lens === "skills" && selectedSkill && !selectedIsParent && !viewingHistory && (
+        <section className={`rapid-controls ${rapid.status === "active" ? "is-active" : ""}`} aria-label="Rapid assessment">
+          {rapid.status === "active" ? (
+            <>
+              <strong>RAPID ASSESSMENT ACTIVE</strong>
+              <span>Tap a learner to apply {achievementDisplay(rapid.target).symbol} {achievementDisplay(rapid.target).label}. Support is unchanged.</span>
+              <button className="secondary" disabled={!rapid.last} onClick={() => {
+                if (!rapid.last) return;
+                const student = snapshot.students.find((item) => item.id === rapid.last!.studentId);
+                if (student) setAssessment(student, skillId, { achievement: rapid.last.previousAchievement, requiresSupport: rapid.last.previousRequiresSupport });
+                dispatchRapid({ type: "undo" });
+              }}>Undo</button>
+              <button className="primary" onClick={() => dispatchRapid({ type: "exit" })}>Exit rapid mode</button>
+            </>
+          ) : (
+            <>
+              <label>Rapid target<select value={rapid.target} onChange={(event) => dispatchRapid({ type: "choose-target", target: event.target.value as Achievement })}>{achievementOptions.map((option) => <option value={option.value} key={option.value}>{option.symbol} {option.label}</option>)}</select></label>
+              <button className="primary" onClick={() => dispatchRapid({ type: "start" })}>Start rapid assessment</button>
+              <span>Two steps prevent accidental class-wide marks. Support stays individual.</span>
+            </>
+          )}
         </section>
       )}
-      {lens === "skills" &&
-        selectedSkill &&
-        !selectedIsParent &&
-        !viewingHistory && (
-          <section
-            className={`rapid-controls ${rapid.status === "active" ? "is-active" : ""}`}
-            aria-label="Rapid assessment"
-          >
-            {rapid.status === "active" ? (
-              <>
-                <strong>RAPID ASSESSMENT ACTIVE</strong>
-                <span>
-                  Tap a learner to apply{" "}
-                  {achievementDisplay(rapid.target).symbol}{" "}
-                  {achievementDisplay(rapid.target).label}. Support is
-                  unchanged.
-                </span>
-                <button
-                  className="secondary"
-                  disabled={!rapid.last}
-                  onClick={() => {
-                    if (!rapid.last) return;
-                    const student = snapshot.students.find(
-                      (item) => item.id === rapid.last!.studentId,
-                    );
-                    if (student)
-                      setAssessment(student, skillId, {
-                        achievement: rapid.last.previousAchievement,
-                        requiresSupport: rapid.last.previousRequiresSupport,
-                      });
-                    dispatchRapid({ type: "undo" });
-                  }}
-                >
-                  Undo
-                </button>
-                <button
-                  className="primary"
-                  onClick={() => dispatchRapid({ type: "exit" })}
-                >
-                  Exit rapid mode
-                </button>
-              </>
-            ) : (
-              <>
-                <label>
-                  Rapid target
-                  <select
-                    value={rapid.target}
-                    onChange={(event) =>
-                      dispatchRapid({
-                        type: "choose-target",
-                        target: event.target.value as Achievement,
-                      })
-                    }
-                  >
-                    {achievementOptions.map((option) => (
-                      <option value={option.value} key={option.value}>
-                        {option.symbol} {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="primary"
-                  onClick={() => dispatchRapid({ type: "start" })}
-                >
-                  Start rapid assessment
-                </button>
-                <span>
-                  Two steps prevent accidental class-wide marks. Support stays
-                  individual.
-                </span>
-              </>
-            )}
-          </section>
-        )}
       {attendanceMode && (
         <AttendancePanel
           present={presentCount}
           absent={absentCount}
           total={activeStudents.length}
-          onMarkAll={async (status) => {
-            if (!period) return;
-            setSnapshot(
-              await dataStore.setPeriodAttendance(
-                snapshot.classRoom.id,
-                period.id,
-                status,
-              ),
-            );
-          }}
-          completed={Boolean(period?.attendanceCompletedAt)}
-          onFinish={async () => {
-            if (period && !period.attendanceCompletedAt)
-              setSnapshot(
-                await dataStore.completeAttendance(
-                  snapshot.classRoom.id,
-                  period.id,
-                ),
-              );
-            setAttendanceMode(false);
-          }}
-          onSkip={() => setAttendanceMode(false)}
+           onMarkAll={async (status) => {
+             if (!period) return;
+             setSnapshot(await dataStore.setPeriodAttendance(snapshot.classRoom.id, period.id, status));
+           }}
+           completed={Boolean(period?.attendanceCompletedAt)}
+           onFinish={async () => {
+              if (period && !period.attendanceCompletedAt) setSnapshot(await dataStore.completeAttendance(snapshot.classRoom.id, period.id));
+              setAttendanceMode(false);
+            }}
+           onSkip={() => setAttendanceMode(false)}
         />
       )}
       {lens === "participation" && !attendanceMode && !arranging ? (
@@ -1177,25 +750,17 @@ export function Live({
             ? "Drag each learner to their real seat. Gaps, pods, rows, and unusual room layouts are all supported and saved for this class."
             : attendanceMode
               ? "Everyone starts present. Tap a tile or its status to mark an absence; tap again to correct it."
-              : skillId
-                ? selectedIsParent
-                  ? "Tap a learner to open every skill and subskill in the full checklist."
-                  : rapid.status === "active"
-                    ? `Rapid mode applies ${achievementDisplay(rapid.target).symbol} ${achievementDisplay(rapid.target).label}.`
-                    : "Tap a learner's evidence area to choose an explicit achievement."
-                : "Tap a learner to open their full skill checklist."}
+               : skillId
+                 ? selectedIsParent
+                   ? "Tap a learner to open every skill and subskill in the full checklist."
+                   : rapid.status === "active"
+                     ? `Rapid mode applies ${achievementDisplay(rapid.target).symbol} ${achievementDisplay(rapid.target).label}.`
+                     : "Tap a learner's evidence area to choose an explicit achievement."
+                 : "Tap a learner to open their full skill checklist."}
         </p>
       )}
-      <section
-        className="roster-tools"
-        aria-label="Roster navigation"
-        ref={rosterStartRef}
-        tabIndex={-1}
-      >
-        <strong>
-          {mapMode ? activeStudents.length : visibleStudents.length}/
-          {activeStudents.length} learners
-        </strong>
+      <section className="roster-tools" aria-label="Roster navigation" ref={rosterStartRef} tabIndex={-1}>
+        <strong>{mapMode ? activeStudents.length : visibleStudents.length}/{activeStudents.length} learners</strong>
         {activeStudents.length > 12 && (
           <label className="roster-search">
             <span className="sr-only">Find and jump to learner</span>
@@ -1207,9 +772,7 @@ export function Live({
               placeholder="Find learner"
             />
             <datalist id="roster-student-names">
-              {activeStudents.map((student) => (
-                <option value={student.displayName} key={student.id} />
-              ))}
+              {activeStudents.map((student) => <option value={student.displayName} key={student.id} />)}
             </datalist>
           </label>
         )}
@@ -1218,9 +781,7 @@ export function Live({
             <span className="sr-only">Filter learner status</span>
             <select
               value={rosterFilter}
-              onChange={(event) =>
-                setRosterFilter(event.target.value as RosterFilter)
-              }
+              onChange={(event) => setRosterFilter(event.target.value as RosterFilter)}
             >
               <option value="all">All learners</option>
               <option value="not-heard">○ Not heard</option>
@@ -1229,78 +790,11 @@ export function Live({
           </label>
         )}
         {!mapMode && (
-          <>
-            <button
-              type="button"
-              className={`whole-class-toggle ${wholeClassMode ? "active-button" : "secondary"}`}
-              aria-pressed={wholeClassMode}
-              onClick={() => {
-                const next = wholeClassMode ? "compact" : "overview";
-                setDensity(next);
-                localStorage.setItem(
-                  `roster-density:${snapshot.classRoom.id}`,
-                  next,
-                );
-              }}
-            >
-              Whole class
-            </button>
-            <fieldset
-              className="density-control"
-              aria-label="Student card size"
-            >
-              <legend className="sr-only">Student card size</legend>
-              <button
-                type="button"
-                aria-label="Show smaller student cards"
-                disabled={density === "overview"}
-                onClick={() => {
-                  const next = changeRosterDensity(density, -1);
-                  setDensity(next);
-                  localStorage.setItem(
-                    `roster-density:${snapshot.classRoom.id}`,
-                    next,
-                  );
-                }}
-              >
-                −
-              </button>
-              <span aria-live="polite">
-                <small>Card size</small>
-                <strong>{rosterDensityLabel(density)}</strong>
-              </span>
-              <button
-                type="button"
-                aria-label="Show larger student cards"
-                disabled={density === "comfortable"}
-                onClick={() => {
-                  const next = changeRosterDensity(density, 1);
-                  setDensity(next);
-                  localStorage.setItem(
-                    `roster-density:${snapshot.classRoom.id}`,
-                    next,
-                  );
-                }}
-              >
-                +
-              </button>
-            </fieldset>
-          </>
+          <><button type="button" className={`whole-class-toggle ${wholeClassMode ? "active-button" : "secondary"}`} aria-pressed={wholeClassMode} onClick={() => { const next = wholeClassMode ? "compact" : "overview"; setDensity(next); localStorage.setItem(`roster-density:${snapshot.classRoom.id}`, next); }}>Whole class</button><fieldset className="density-control" aria-label="Student card size"><legend className="sr-only">Student card size</legend><button type="button" aria-label="Show smaller student cards" disabled={density === "overview"} onClick={() => { const next = changeRosterDensity(density, -1); setDensity(next); localStorage.setItem(`roster-density:${snapshot.classRoom.id}`, next); }}>−</button><span aria-live="polite"><small>Card size</small><strong>{rosterDensityLabel(density)}</strong></span><button type="button" aria-label="Show larger student cards" disabled={density === "comfortable"} onClick={() => { const next = changeRosterDensity(density, 1); setDensity(next); localStorage.setItem(`roster-density:${snapshot.classRoom.id}`, next); }}>+</button></fieldset></>
         )}
         {activeStudents.length > 12 && (
-          <nav
-            className="roster-index"
-            aria-label="Jump to learner by first letter"
-          >
-            {initials.map((initial) => (
-              <button
-                type="button"
-                onClick={() => jumpToInitial(initial)}
-                key={initial}
-              >
-                {initial}
-              </button>
-            ))}
+          <nav className="roster-index" aria-label="Jump to learner by first letter">
+            {initials.map((initial) => <button type="button" onClick={() => jumpToInitial(initial)} key={initial}>{initial}</button>)}
           </nav>
         )}
       </section>
@@ -1316,85 +810,36 @@ export function Live({
           density={density}
           viewportRef={mapViewportRef}
           canvasRef={mapCanvasRef}
-          canvasStyle={
-            mapMode
-              ? {
-                  width: roomWidth,
-                  height: roomHeight,
-                  transform: `translate3d(${mapTransform.translateX}px, ${mapTransform.translateY}px, 0) scale(${effectiveScale})`,
-                }
-              : undefined
-          }
-          stageStyle={
-            mapMode
-              ? {
-                  width: "100%",
-                  height: "100%",
-                }
-              : undefined
-          }
-          mapControls={
-            mapMode ? (
-              <div
-                className="map-controls"
-                aria-label="Seating chart view controls"
-              >
-                <button
-                  type="button"
-                  aria-label="Zoom out"
-                  onClick={() => setMapZoom(effectiveScale - 0.1)}
-                >
-                  −
-                </button>
-                <strong aria-live="polite">
-                  {Math.round(effectiveScale * 100)}%
-                </strong>
-                <button
-                  type="button"
-                  aria-label="Zoom in"
-                  onClick={() => setMapZoom(effectiveScale + 0.1)}
-                >
-                  +
-                </button>
-                <button type="button" onClick={fitAllSeats}>
-                  Fit
-                </button>
-                <button
-                  type="button"
-                  className={arranging ? "active" : ""}
-                  onClick={() => setArrangeMode(!arranging)}
-                >
-                  {arranging ? "Done" : "Arrange"}
-                </button>
-                <button type="button" onClick={toggleMapFullscreen}>
-                  {mapFullscreen ? "Exit full screen" : "Full screen"}
-                </button>
-              </div>
-            ) : undefined
-          }
+          canvasStyle={mapMode ? {
+            width: roomWidth,
+            height: roomHeight,
+            transform: `translate3d(${mapTransform.translateX}px, ${mapTransform.translateY}px, 0) scale(${effectiveScale})`,
+          } : undefined}
+          stageStyle={mapMode ? {
+            width: "100%",
+            height: "100%",
+          } : undefined}
+          mapControls={mapMode ? (
+            <div className="map-controls" aria-label="Seating chart view controls">
+              <button type="button" aria-label="Zoom out" onClick={() => setMapZoom(effectiveScale - 0.1)}>−</button>
+              <strong aria-live="polite">{Math.round(effectiveScale * 100)}%</strong>
+              <button type="button" aria-label="Zoom in" onClick={() => setMapZoom(effectiveScale + 0.1)}>+</button>
+              <button type="button" onClick={fitAllSeats}>Fit</button>
+              <button type="button" className={arranging ? "active" : ""} onClick={() => setArrangeMode(!arranging)}>{arranging ? "Done" : "Arrange"}</button>
+              <button type="button" onClick={toggleMapFullscreen}>{mapFullscreen ? "Exit full screen" : "Full screen"}</button>
+            </div>
+          ) : undefined}
         >
           {(student, index) => {
-            const mastery = skillId
-              ? masteryFor(student.id, skillId)
-              : undefined;
-            const summary =
-              skillId && selectedIsParent
-                ? parentSummary(
-                    snapshot.skills,
-                    snapshot.mastery,
-                    student.id,
-                    skillId,
-                  )
-                : undefined;
+            const mastery = skillId ? masteryFor(student.id, skillId) : undefined;
+            const summary = skillId && selectedIsParent ? parentSummary(snapshot.skills, snapshot.mastery, student.id, skillId) : undefined;
             const request = requestsByStudent.get(student.id);
             const requestLabel = request
               ? requestTypesById.get(request.requestTypeId)?.label
               : undefined;
             const participationMode =
               lens === "participation" && !attendanceMode && !arranging;
-            // Keep direct +/- actions available through the reduced seating view.
-            // Only switch to the fixed tray when a card can truly fit only a name.
-            const cardActionsVisible = !mapMode || effectiveScale >= 0.3;
+            const cardActionsVisible = !mapMode || effectiveScale >= 0.7;
             return (
               <div
                 className={`${mapMode ? "seat-position" : "grid-position"} ${highlightedStudentId === student.id ? "student-jump-highlight" : ""}`}
@@ -1413,12 +858,7 @@ export function Live({
               >
                 <StudentTile
                   student={student}
-                  selected={
-                    (lens === "skills" &&
-                      rapid.status === "active" &&
-                      Boolean(skillId)) ||
-                    actionStudentId === student.id
-                  }
+                  selected={(lens === "skills" && rapid.status === "active" && Boolean(skillId)) || actionStudentId === student.id}
                   attendance={attendance(student.id)}
                   positives={
                     participationMode ? positives(student.id) : undefined
@@ -1431,13 +871,13 @@ export function Live({
                       ? "Drag to seat"
                       : mapMode
                         ? undefined
-                        : lens === "skills" && !attendanceMode
-                          ? skillId
-                            ? summary
-                              ? parentSummaryText(summary)
-                              : `${achievementDisplay(mastery!.achievement).symbol} ${achievementDisplay(mastery!.achievement).label}${mastery!.requiresSupport ? " · ◆ Support" : ""}`
-                            : `Meet/exceed ${masteryProgress(student.id)}/${assessedSkills.length}`
-                          : undefined
+                      : lens === "skills" && !attendanceMode
+                         ? skillId
+                           ? summary
+                             ? parentSummaryText(summary)
+                             : `${achievementDisplay(mastery!.achievement).symbol} ${achievementDisplay(mastery!.achievement).label}${mastery!.requiresSupport ? " · ◆ Support" : ""}`
+                           : `Meet/exceed ${masteryProgress(student.id)}/${assessedSkills.length}`
+                        : undefined
                   }
                   requestLabel={requestLabel}
                   attendancePass={attendanceMode}
@@ -1466,9 +906,7 @@ export function Live({
                           ? updateAttendance(student)
                           : lens === "skills"
                             ? handleSkillTap(student)
-                            : participationMode &&
-                                mapMode &&
-                                !cardActionsVisible
+                            : participationMode && mapMode && !cardActionsVisible
                               ? setActionStudentId(student.id)
                               : undefined
                   }
@@ -1490,100 +928,34 @@ export function Live({
                       : undefined
                   }
                 />
-                {lens === "skills" &&
-                  skillId &&
-                  !selectedIsParent &&
-                  assessmentStudentId === student.id &&
-                  rapid.status !== "active" && (
-                    <AchievementSelector
-                      achievement={mastery!.achievement}
-                      requiresSupport={mastery!.requiresSupport}
-                      onAchievement={(achievement) =>
-                        setAssessment(student, skillId, { achievement })
-                      }
-                      onSupport={(requiresSupport) =>
-                        setAssessment(student, skillId, { requiresSupport })
-                      }
-                    />
-                  )}
+                {lens === "skills" && skillId && !selectedIsParent && assessmentStudentId === student.id && rapid.status !== "active" && (
+                  <AchievementSelector
+                    achievement={mastery!.achievement}
+                    requiresSupport={mastery!.requiresSupport}
+                    onAchievement={(achievement) => setAssessment(student, skillId, { achievement })}
+                    onSupport={(requiresSupport) => setAssessment(student, skillId, { requiresSupport })}
+                  />
+                )}
               </div>
             );
           }}
         </StudentGrid>
       )}
-      {mapMode &&
-        !arranging &&
-        lens === "participation" &&
-        effectiveScale < 0.7 &&
-        actionStudentId &&
-        (() => {
-          const student = activeStudents.find(
-            (item) => item.id === actionStudentId,
-          );
-          if (!student) return null;
-          return (
-            <section
-              className="seating-action-tray"
-              role="dialog"
-              aria-label={`Participation actions for ${student.displayName}`}
-            >
-              <div className="tray-student">
-                <strong>{student.displayName}</strong>
-                <span
-                  className={
-                    attendance(student.id) === "absent" ? "absent" : "present"
-                  }
-                >
-                  {attendance(student.id) === "absent" ? "A" : "P"}
-                  <span className="sr-only"> {attendance(student.id)}</span>
-                </span>
-              </div>
-              <button
-                type="button"
-                className="positive-action"
-                disabled={attendance(student.id) === "absent"}
-                onClick={() => participate(student, 1)}
-              >
-                <span>
-                  <b>+</b> Positive Action
-                </span>
-                <small>{positives(student.id)} today</small>
-              </button>
-              <button
-                type="button"
-                className="redirect-action"
-                disabled={attendance(student.id) === "absent"}
-                onClick={() => participate(student, -1)}
-              >
-                <span>
-                  <b>−</b> Redirect
-                </span>
-                <small>{negatives(student.id)} today</small>
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setActionStudentId("")}
-              >
-                Close
-              </button>
-            </section>
-          );
-        })()}
+      {mapMode && !arranging && lens === "participation" && effectiveScale < 0.7 && actionStudentId && (() => {
+        const student = activeStudents.find((item) => item.id === actionStudentId);
+        if (!student) return null;
+        return <section className="seating-action-tray" role="dialog" aria-label={`Participation actions for ${student.displayName}`}>
+          <div className="tray-student"><strong>{student.displayName}</strong><span className={attendance(student.id) === "absent" ? "absent" : "present"}>{attendance(student.id) === "absent" ? "A" : "P"}<span className="sr-only"> {attendance(student.id)}</span></span></div>
+          <button type="button" className="positive-action" disabled={attendance(student.id) === "absent"} onClick={() => participate(student, 1)}><span><b>+</b> Positive Action</span><small>{positives(student.id)} today</small></button>
+          <button type="button" className="redirect-action" disabled={attendance(student.id) === "absent"} onClick={() => participate(student, -1)}><span><b>−</b> Redirect</span><small>{negatives(student.id)} today</small></button>
+          <button type="button" className="secondary" onClick={() => setActionStudentId("")}>Close</button>
+        </section>;
+      })()}
       {showBackToTop && (
-        <button
-          className="back-to-top"
-          type="button"
-          onClick={() => {
-            rosterStartRef.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-            rosterStartRef.current?.focus({ preventScroll: true });
-          }}
-        >
-          Back to roster top
-        </button>
+        <button className="back-to-top" type="button" onClick={() => {
+          rosterStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          rosterStartRef.current?.focus({ preventScroll: true });
+        }}>Back to roster top</button>
       )}
       <RequestRail />
       {skillStudentId && (
@@ -1593,34 +965,10 @@ export function Live({
           )!}
           onClose={() => setSkillStudentId("")}
           masteryFor={(id) => masteryFor(skillStudentId, id)}
-          onAssess={(id, update) =>
-            setAssessment(
-              snapshot.students.find((item) => item.id === skillStudentId)!,
-              id,
-              update,
-            )
-          }
+          onAssess={(id, update) => setAssessment(snapshot.students.find((item) => item.id === skillStudentId)!, id, update)}
         />
       )}
-      {editingPeriod && period && (
-        <ClassDayDialog
-          period={period}
-          onClose={() => setEditingPeriod(false)}
-          onSave={async (body) => {
-            await dataStore.mutate(
-              snapshot.classRoom.id,
-              `/classes/${snapshot.classRoom.id}/periods/${period.id}`,
-              "PATCH",
-              body,
-            );
-            await dataStore.sync();
-            setSnapshot(
-              await dataStore.getSnapshot(snapshot.classRoom.id, true),
-            );
-            setEditingPeriod(false);
-          }}
-        />
-      )}
+      {editingPeriod && period && <ClassDayDialog period={period} onClose={() => setEditingPeriod(false)} onSave={async (body) => { await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/periods/${period.id}`, "PATCH", body); await dataStore.sync(); setSnapshot(await dataStore.getSnapshot(snapshot.classRoom.id, true)); setEditingPeriod(false); }}/>} 
     </div>
   );
 
@@ -1678,136 +1026,23 @@ function AttendancePanel({
         <button className="secondary" onClick={() => onMarkAll("present")}>
           Reset all
         </button>
-        {!completed && (
-          <button className="text-button" onClick={onSkip}>
-            Skip for now
-          </button>
-        )}
-        <button className="primary" onClick={() => void onFinish()}>
-          {completed ? "Done" : "Finish attendance"}
+         {!completed && <button className="text-button" onClick={onSkip}>Skip for now</button>}
+         <button className="primary" onClick={() => void onFinish()}>
+           {completed ? "Done" : "Finish attendance"}
         </button>
       </div>
     </section>
   );
 }
 
-function ClassDayDialog({
-  period,
-  onClose,
-  onSave,
-}: {
-  period: import("../types").Period;
-  onClose: () => void;
-  onSave: (body: Record<string, unknown>) => Promise<void>;
-}) {
-  const [label, setLabel] = useState(period.label);
-  const [type, setType] = useState<PeriodType>(period.type ?? "instructional");
-  const [teacherNote, setTeacherNote] = useState(period.teacherNote ?? "");
-  const [busy, setBusy] = useState(false);
-  return (
-    <div className="modal-backdrop">
-      <form
-        className="card modal"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          setBusy(true);
-          await onSave({
-            label,
-            type,
-            participationExpected: type === "instructional",
-            teacherNote: teacherNote || undefined,
-          });
-          setBusy(false);
-        }}
-      >
-        <h2>Edit class day</h2>
-        <label>
-          Class-day label
-          <input
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-        </label>
-        <label>
-          Activity type
-          <select
-            value={type}
-            onChange={(event) => setType(event.target.value as PeriodType)}
-          >
-            <option value="instructional">Instructional</option>
-            <option value="independent">Independent work</option>
-            <option value="assessment">Assessment</option>
-            <option value="no-participation">No participation expected</option>
-          </select>
-        </label>
-        <label>
-          Teacher note
-          <textarea
-            value={teacherNote}
-            onChange={(event) => setTeacherNote(event.target.value)}
-            rows={3}
-            placeholder="Optional class-day context"
-          />
-        </label>
-        <div className="button-row">
-          <button type="button" className="secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="primary" disabled={busy || !label.trim()}>
-            {busy ? "Saving..." : "Save class day"}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+function ClassDayDialog({ period, onClose, onSave }: { period: import("../types").Period; onClose: () => void; onSave: (body: Record<string, unknown>) => Promise<void> }) {
+  const [label, setLabel] = useState(period.label); const [type, setType] = useState<PeriodType>(period.type ?? "instructional"); const [teacherNote, setTeacherNote] = useState(period.teacherNote ?? ""); const [busy, setBusy] = useState(false);
+  return <div className="modal-backdrop"><form className="card modal" onSubmit={async (event) => { event.preventDefault(); setBusy(true); await onSave({ label, type, participationExpected: type === "instructional", teacherNote: teacherNote || undefined }); setBusy(false); }}><h2>Edit class day</h2><label>Class-day label<input value={label} onChange={(event) => setLabel(event.target.value)}/></label><label>Activity type<select value={type} onChange={(event) => setType(event.target.value as PeriodType)}><option value="instructional">Instructional</option><option value="independent">Independent work</option><option value="assessment">Assessment</option><option value="no-participation">No participation expected</option></select></label><label>Teacher note<textarea value={teacherNote} onChange={(event) => setTeacherNote(event.target.value)} rows={3} placeholder="Optional class-day context"/></label><div className="button-row"><button type="button" className="secondary" onClick={onClose}>Cancel</button><button className="primary" disabled={busy || !label.trim()}>{busy ? "Saving..." : "Save class day"}</button></div></form></div>;
 }
 
-function ConfirmDialog({
-  title,
-  confirmLabel,
-  onClose,
-  onConfirm,
-  children,
-}: {
-  title: string;
-  confirmLabel: string;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-  children: ReactNode;
-}) {
+function ConfirmDialog({ title, confirmLabel, onClose, onConfirm, children }: { title: string; confirmLabel: string; onClose: () => void; onConfirm: () => Promise<void>; children: ReactNode }) {
   const [busy, setBusy] = useState(false);
-  return (
-    <div className="modal-backdrop">
-      <section
-        className="card modal confirm-modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="live-confirm-title"
-      >
-        <h2 id="live-confirm-title">{title}</h2>
-        {children}
-        <div className="button-row">
-          <button className="secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-          <button
-            className="danger-button"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await onConfirm();
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {busy ? "Saving..." : confirmLabel}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
+  return <div className="modal-backdrop"><section className="card modal confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="live-confirm-title"><h2 id="live-confirm-title">{title}</h2>{children}<div className="button-row"><button className="secondary" onClick={onClose} disabled={busy}>Cancel</button><button className="danger-button" disabled={busy} onClick={async () => { setBusy(true); try { await onConfirm(); } finally { setBusy(false); } }}>{busy ? "Saving..." : confirmLabel}</button></div></section></div>;
 }
 
 function NewDayPrompt({
@@ -1899,7 +1134,9 @@ function ParticipationBar({
   );
   const heard = present.filter((student) =>
     periodEvents.some(
-      (event) => event.studentId === student.id && event.type === "part+",
+      (event) =>
+        event.studentId === student.id &&
+        event.type === "part+",
     ),
   );
   const positive = periodEvents.filter(
@@ -1980,66 +1217,31 @@ function SkillChecklist({
 }: {
   student: Student;
   onClose: () => void;
-  masteryFor: (id: string) => {
-    achievement: Achievement;
-    requiresSupport: boolean;
-  };
-  onAssess: (
-    id: string,
-    update: { achievement?: Achievement; requiresSupport?: boolean },
-  ) => void;
+  masteryFor: (id: string) => { achievement: Achievement; requiresSupport: boolean };
+  onAssess: (id: string, update: { achievement?: Achievement; requiresSupport?: boolean }) => void;
 }) {
   const { snapshot } = useApp();
   const [photos, setPhotos] = useState<import("../types").SkillPhoto[]>([]);
-  const [expandedSkills, setExpandedSkills] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [expandedSkills, setExpandedSkills] = useState<Set<string>>(() => new Set());
   const [uploadingSkillId, setUploadingSkillId] = useState("");
   const [photoError, setPhotoError] = useState("");
-  const activePeriod = snapshot?.periods.find(
-    (period) => period.status === "live",
-  );
+  const activePeriod = snapshot?.periods.find((period) => period.status === "live");
   useEffect(() => {
     if (!snapshot) return;
-    void dataStore
-      .getSkillPhotos(snapshot.classRoom.id, student.id)
-      .then(setPhotos)
-      .catch(() => setPhotoError("Photo evidence could not be loaded."));
+    void dataStore.getSkillPhotos(snapshot.classRoom.id, student.id).then(setPhotos).catch(() => setPhotoError("Photo evidence could not be loaded."));
   }, [snapshot?.classRoom.id, student.id]);
   if (!snapshot) return null;
   const parents = topLevelSkills(snapshot.skills);
-  const upload = async (
-    skillId: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  const upload = async (skillId: string, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]; event.target.value = "";
     if (!file) return;
-    setUploadingSkillId(skillId);
-    setPhotoError("");
+    setUploadingSkillId(skillId); setPhotoError("");
     try {
       const image = await resizeEvidencePhoto(file);
-      const photo = await dataStore.uploadSkillPhoto(
-        snapshot.classRoom.id,
-        student.id,
-        skillId,
-        image,
-        {
-          filename: file.name,
-          periodId: activePeriod?.id,
-          assessedAt: new Date().toISOString(),
-        },
-      );
+      const photo = await dataStore.uploadSkillPhoto(snapshot.classRoom.id, student.id, skillId, image, { filename: file.name, periodId: activePeriod?.id, assessedAt: new Date().toISOString() });
       setPhotos((current) => [photo, ...current]);
-    } catch (error) {
-      setPhotoError(
-        error instanceof Error
-          ? error.message
-          : "The photo could not be saved.",
-      );
-    } finally {
-      setUploadingSkillId("");
-    }
+    } catch (error) { setPhotoError(error instanceof Error ? error.message : "The photo could not be saved."); }
+    finally { setUploadingSkillId(""); }
   };
   const removePhoto = async (photoId: string) => {
     if (!confirm("Delete this photo evidence? This cannot be undone.")) return;
@@ -2068,62 +1270,18 @@ function SkillChecklist({
         Choose an achievement and support status for every standalone skill or
         subskill. Skill families show counts from their subskills.
       </p>
-      <p className="photo-privacy-note">
-        <strong>Teacher evidence only.</strong> You can photograph or upload the
-        student's work for each skill. Students cannot add, view, or remove
-        these photos. Avoid faces, legal names, and other identifying details.
-      </p>
-      {photoError && (
-        <p className="error" role="alert">
-          {photoError}
-        </p>
-      )}
-      {parents.length > 1 && (
-        <div className="checklist-expand-actions">
-          <button
-            className="secondary"
-            onClick={() =>
-              setExpandedSkills(new Set(parents.map((skill) => skill.id)))
-            }
-          >
-            Expand all skills
-          </button>
-          <button
-            className="secondary"
-            onClick={() => setExpandedSkills(new Set())}
-          >
-            Collapse all skills
-          </button>
-        </div>
-      )}
+      <p className="photo-privacy-note"><strong>Teacher evidence only.</strong> You can photograph or upload the student's work for each skill. Students cannot add, view, or remove these photos. Avoid faces, legal names, and other identifying details.</p>
+      {photoError && <p className="error" role="alert">{photoError}</p>}
+      {parents.length > 1 && <div className="checklist-expand-actions"><button className="secondary" onClick={() => setExpandedSkills(new Set(parents.map((skill) => skill.id)))}>Expand all skills</button><button className="secondary" onClick={() => setExpandedSkills(new Set())}>Collapse all skills</button></div>}
       {parents.map((skill) => {
         const children = snapshot.skills.filter(
           (child) => child.parentSkillId === skill.id,
         );
         const skillMastery = masteryFor(skill.id);
-        const summary = children.length
-          ? parentSummary(
-              snapshot.skills,
-              snapshot.mastery,
-              student.id,
-              skill.id,
-            )
-          : undefined;
+        const summary = children.length ? parentSummary(snapshot.skills, snapshot.mastery, student.id, skill.id) : undefined;
         return (
           <section className="checklist-family" key={skill.id}>
-            <button
-              className="checklist-skill checklist-parent"
-              aria-expanded={expandedSkills.has(skill.id)}
-              onClick={() =>
-                setExpandedSkills((current) => {
-                  const next = new Set(current);
-                  next.has(skill.id)
-                    ? next.delete(skill.id)
-                    : next.add(skill.id);
-                  return next;
-                })
-              }
-            >
+            <button className="checklist-skill checklist-parent" aria-expanded={expandedSkills.has(skill.id)} onClick={() => setExpandedSkills((current) => { const next = new Set(current); next.has(skill.id) ? next.delete(skill.id) : next.add(skill.id); return next; })}>
               <span>
                 <strong>{skill.label}</strong>
                 <small>
@@ -2132,76 +1290,22 @@ function SkillChecklist({
                 </small>
               </span>
               <b className="checklist-summary">
-                {summary
-                  ? parentSummaryText(summary)
-                  : `${achievementDisplay(skillMastery.achievement).symbol} ${achievementDisplay(skillMastery.achievement).label}${skillMastery.requiresSupport ? " · ◆ Support" : ""}`}
+                {summary ? parentSummaryText(summary) : `${achievementDisplay(skillMastery.achievement).symbol} ${achievementDisplay(skillMastery.achievement).label}${skillMastery.requiresSupport ? " · ◆ Support" : ""}`}
               </b>
-              <i aria-hidden="true">
-                {expandedSkills.has(skill.id) ? "−" : "+"}
-              </i>
+              <i aria-hidden="true">{expandedSkills.has(skill.id) ? "−" : "+"}</i>
             </button>
-            {expandedSkills.has(skill.id) && (
-              <>
-                {!children.length && (
-                  <AchievementSelector
-                    achievement={skillMastery.achievement}
-                    requiresSupport={skillMastery.requiresSupport}
-                    onAchievement={(achievement) =>
-                      onAssess(skill.id, { achievement })
-                    }
-                    onSupport={(requiresSupport) =>
-                      onAssess(skill.id, { requiresSupport })
-                    }
-                  />
-                )}
-                <SkillPhotoControls
-                  skillId={skill.id}
-                  label={skill.label}
-                  photos={photos.filter((photo) => photo.skillId === skill.id)}
-                  uploading={uploadingSkillId === skill.id}
-                  onUpload={upload}
-                  onDelete={removePhoto}
-                />
-                {children.map((child) => {
-                  const childMastery = masteryFor(child.id);
-                  return (
-                    <div className="subskill-evidence" key={child.id}>
-                      <div className="checklist-skill subskill">
-                        <span>
-                          <strong>↳ {child.label}</strong>
-                          <small>Contributes to {skill.label}</small>
-                        </span>
-                        <b>
-                          {achievementDisplay(childMastery.achievement).symbol}{" "}
-                          {achievementDisplay(childMastery.achievement).label}
-                          {childMastery.requiresSupport ? " · ◆ Support" : ""}
-                        </b>
-                      </div>
-                      <AchievementSelector
-                        achievement={childMastery.achievement}
-                        requiresSupport={childMastery.requiresSupport}
-                        onAchievement={(achievement) =>
-                          onAssess(child.id, { achievement })
-                        }
-                        onSupport={(requiresSupport) =>
-                          onAssess(child.id, { requiresSupport })
-                        }
-                      />
-                      <SkillPhotoControls
-                        skillId={child.id}
-                        label={child.label}
-                        photos={photos.filter(
-                          (photo) => photo.skillId === child.id,
-                        )}
-                        uploading={uploadingSkillId === child.id}
-                        onUpload={upload}
-                        onDelete={removePhoto}
-                      />
-                    </div>
-                  );
-                })}
-              </>
-            )}
+            {expandedSkills.has(skill.id) && <>{!children.length && <AchievementSelector achievement={skillMastery.achievement} requiresSupport={skillMastery.requiresSupport} onAchievement={(achievement) => onAssess(skill.id, { achievement })} onSupport={(requiresSupport) => onAssess(skill.id, { requiresSupport })}/>} 
+            <SkillPhotoControls skillId={skill.id} label={skill.label} photos={photos.filter((photo) => photo.skillId === skill.id)} uploading={uploadingSkillId === skill.id} onUpload={upload} onDelete={removePhoto}/>
+            {children.map((child) => {
+              const childMastery = masteryFor(child.id);
+              return (
+                <div className="subskill-evidence" key={child.id}>
+                  <div className="checklist-skill subskill"><span><strong>↳ {child.label}</strong><small>Contributes to {skill.label}</small></span><b>{achievementDisplay(childMastery.achievement).symbol} {achievementDisplay(childMastery.achievement).label}{childMastery.requiresSupport ? " · ◆ Support" : ""}</b></div>
+                  <AchievementSelector achievement={childMastery.achievement} requiresSupport={childMastery.requiresSupport} onAchievement={(achievement) => onAssess(child.id, { achievement })} onSupport={(requiresSupport) => onAssess(child.id, { requiresSupport })}/>
+                  <SkillPhotoControls skillId={child.id} label={child.label} photos={photos.filter((photo) => photo.skillId === child.id)} uploading={uploadingSkillId === child.id} onUpload={upload} onDelete={removePhoto}/>
+                </div>
+              );
+            })}</>}
           </section>
         );
       })}
@@ -2210,137 +1314,35 @@ function SkillChecklist({
   );
 }
 
-function AchievementSelector({
-  achievement,
-  requiresSupport,
-  onAchievement,
-  onSupport,
-}: {
-  achievement: Achievement;
-  requiresSupport: boolean;
-  onAchievement: (achievement: Achievement) => void;
-  onSupport: (requiresSupport: boolean) => void;
-}) {
+function AchievementSelector({ achievement, requiresSupport, onAchievement, onSupport }: { achievement: Achievement; requiresSupport: boolean; onAchievement: (achievement: Achievement) => void; onSupport: (requiresSupport: boolean) => void }) {
   const [selectedAchievement, setSelectedAchievement] = useState(achievement);
   return (
     <div className="achievement-selector" aria-label="Achievement evidence">
       <div className="achievement-options">
         {achievementOptions.map((option) => (
-          <button
-            type="button"
-            key={option.value}
-            className={`achievement-option achievement-${option.value} ${selectedAchievement === option.value ? "selected" : ""}`}
-            aria-pressed={selectedAchievement === option.value}
-            onClick={() => {
-              setSelectedAchievement(option.value);
-              onAchievement(option.value);
-            }}
-          >
-            <b aria-hidden="true">{option.symbol}</b>
-            <span>{option.label}</span>
+          <button type="button" key={option.value} className={`achievement-option achievement-${option.value} ${selectedAchievement === option.value ? "selected" : ""}`} aria-pressed={selectedAchievement === option.value} onClick={() => { setSelectedAchievement(option.value); onAchievement(option.value); }}>
+            <b aria-hidden="true">{option.symbol}</b><span>{option.label}</span>
           </button>
         ))}
       </div>
-      <label className={`support-toggle ${requiresSupport ? "selected" : ""}`}>
-        <input
-          type="checkbox"
-          checked={requiresSupport}
-          onChange={(event) => onSupport(event.target.checked)}
-        />
-        <span>◆ Requires support</span>
-      </label>
+      <label className={`support-toggle ${requiresSupport ? "selected" : ""}`}><input type="checkbox" checked={requiresSupport} onChange={(event) => onSupport(event.target.checked)}/><span>◆ Requires support</span></label>
     </div>
   );
 }
 
-function SkillPhotoControls({
-  skillId,
-  label,
-  photos,
-  uploading,
-  onUpload,
-  onDelete,
-}: {
-  skillId: string;
-  label: string;
-  photos: import("../types").SkillPhoto[];
-  uploading: boolean;
-  onUpload: (skillId: string, event: ChangeEvent<HTMLInputElement>) => void;
-  onDelete: (photoId: string) => void;
-}) {
-  const cameraId = `camera-${skillId}`;
-  const uploadId = `upload-${skillId}`;
-  return (
-    <details className="skill-photo-evidence">
-      <summary>
-        <strong>Teacher photo evidence</strong>
-        <span>
-          {uploading
-            ? "Saving..."
-            : `${photos.length} photo${photos.length === 1 ? "" : "s"}`}
-        </span>
-      </summary>
-      <div className="skill-photo-actions">
-        <label className="secondary" htmlFor={cameraId}>
-          Take photo
-          <input
-            id={cameraId}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            capture="environment"
-            onChange={(event) => onUpload(skillId, event)}
-            disabled={uploading}
-          />
-        </label>
-        <label className="secondary" htmlFor={uploadId}>
-          Upload work
-          <input
-            id={uploadId}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => onUpload(skillId, event)}
-            disabled={uploading}
-          />
-        </label>
-      </div>
-      {photos.length > 0 && (
-        <div className="skill-photo-gallery">
-          {photos.map((photo) => (
-            <figure key={photo.id}>
-              <img
-                src={photo.imageUrl}
-                alt={`${label} work evidence from ${new Date(photo.assessedAt).toLocaleDateString()}`}
-                loading="lazy"
-              />
-              <figcaption>
-                <span>{new Date(photo.assessedAt).toLocaleDateString()}</span>
-                <button onClick={() => onDelete(photo.id)}>Delete</button>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      )}
-    </details>
-  );
+function SkillPhotoControls({ skillId, label, photos, uploading, onUpload, onDelete }: { skillId: string; label: string; photos: import("../types").SkillPhoto[]; uploading: boolean; onUpload: (skillId: string, event: ChangeEvent<HTMLInputElement>) => void; onDelete: (photoId: string) => void }) {
+  const cameraId = `camera-${skillId}`; const uploadId = `upload-${skillId}`;
+  return <details className="skill-photo-evidence"><summary><strong>Teacher photo evidence</strong><span>{uploading ? "Saving..." : `${photos.length} photo${photos.length === 1 ? "" : "s"}`}</span></summary><div className="skill-photo-actions"><label className="secondary" htmlFor={cameraId}>Take photo<input id={cameraId} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => onUpload(skillId, event)} disabled={uploading}/></label><label className="secondary" htmlFor={uploadId}>Upload work<input id={uploadId} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => onUpload(skillId, event)} disabled={uploading}/></label></div>{photos.length > 0 && <div className="skill-photo-gallery">{photos.map((photo) => <figure key={photo.id}><img src={photo.imageUrl} alt={`${label} work evidence from ${new Date(photo.assessedAt).toLocaleDateString()}`} loading="lazy"/><figcaption><span>{new Date(photo.assessedAt).toLocaleDateString()}</span><button onClick={() => onDelete(photo.id)}>Delete</button></figcaption></figure>)}</div>}</details>;
 }
 
 async function resizeEvidencePhoto(file: File): Promise<Blob> {
-  if (!file.type.startsWith("image/"))
-    throw new Error("Choose a JPEG, PNG, or WebP image.");
-  const bitmap = await createImageBitmap(file);
-  const max = 1600;
-  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg", 0.82),
-  );
+  if (!file.type.startsWith("image/")) throw new Error("Choose a JPEG, PNG, or WebP image.");
+  const bitmap = await createImageBitmap(file); const max = 1600; const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas"); canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", .82));
   if (!blob) throw new Error("The photo could not be prepared.");
-  if (blob.size > 5 * 1024 * 1024)
-    throw new Error("The photo is too large. Choose a smaller image.");
+  if (blob.size > 5 * 1024 * 1024) throw new Error("The photo is too large. Choose a smaller image.");
   return blob;
 }
 
@@ -2374,85 +1376,42 @@ function RequestRail() {
   const classId = snapshot?.classRoom.id ?? "";
   const collapsedKey = `request-rail-collapsed:${classId}`;
   const seenKey = `request-rail-seen:${classId}`;
-  const [open, setOpen] = useState(
-    () => sessionStorage.getItem(collapsedKey) === "false",
-  );
-  const [sound, setSound] = useState(
-    () => localStorage.getItem("request-alert-sound") === "true",
-  );
-  const [seen, setSeen] = useState<Set<string>>(
-    () =>
-      new Set(JSON.parse(sessionStorage.getItem(seenKey) ?? "[]") as string[]),
-  );
-  const [completionOpen, setCompletionOpen] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [open, setOpen] = useState(() => sessionStorage.getItem(collapsedKey) === "false");
+  const [sound, setSound] = useState(() => localStorage.getItem("request-alert-sound") === "true");
+  const [seen, setSeen] = useState<Set<string>>(() => new Set(JSON.parse(sessionStorage.getItem(seenKey) ?? "[]") as string[]));
+  const [completionOpen, setCompletionOpen] = useState<Record<string, boolean>>({});
   const [pulse, setPulse] = useState(false);
-  const [undo, setUndo] = useState<{
-    id: string;
-    name: string;
-    action: "resolved" | "cleared";
-  }>();
+  const [undo, setUndo] = useState<{ id: string; name: string; action: "resolved" | "cleared" }>();
   const previousNewCount = useRef(0);
   const soundPlaying = useRef(false);
 
   useEffect(() => {
-    setOpen(
-      sessionStorage.getItem(`request-rail-collapsed:${classId}`) === "false",
-    );
-    setSeen(
-      new Set(
-        JSON.parse(
-          sessionStorage.getItem(`request-rail-seen:${classId}`) ?? "[]",
-        ) as string[],
-      ),
-    );
+    setOpen(sessionStorage.getItem(`request-rail-collapsed:${classId}`) === "false");
+    setSeen(new Set(JSON.parse(sessionStorage.getItem(`request-rail-seen:${classId}`) ?? "[]") as string[]));
     setCompletionOpen({});
     setUndo(undefined);
     previousNewCount.current = 0;
   }, [classId]);
 
-  useEffect(
-    () =>
-      dataStore.subscribeRequestUpdates(classId, () => {
-        setPulse(true);
-        window.setTimeout(() => setPulse(false), 900);
-      }),
-    [classId],
-  );
+  useEffect(() => dataStore.subscribeRequestUpdates(classId, () => {
+    setPulse(true);
+    window.setTimeout(() => setPulse(false), 900);
+  }), [classId]);
 
   const prepared = useMemo(() => {
     if (!snapshot) return null;
     const period = snapshot.periods.find((item) => item.status === "live");
-    const attendance = new Map(
-      snapshot.attendance
-        .filter((item) => item.periodId === period?.id)
-        .map((item) => [item.studentId, item.status]),
-    );
-    const students = new Map(
-      snapshot.students.map((student) => [student.id, student]),
-    );
-    const requests = snapshot.requests.filter(
-      (request) =>
-        (attendance.get(request.studentId) ?? "present") === "present",
-    );
+    const attendance = new Map(snapshot.attendance.filter((item) => item.periodId === period?.id).map((item) => [item.studentId, item.status]));
+    const students = new Map(snapshot.students.map((student) => [student.id, student]));
+    const requests = snapshot.requests.filter((request) => (attendance.get(request.studentId) ?? "present") === "present");
     const lanes = groupRequestLanes(snapshot.requestTypes, requests);
     const newIds = unseenRequestIds(requests, seen);
-    return {
-      requests,
-      lanes,
-      newIds,
-      students,
-      alert: requestAlert(newIds, lanes),
-    };
+    return { requests, lanes, newIds, students, alert: requestAlert(newIds, lanes) };
   }, [snapshot, seen]);
 
   const playAlert = () => {
     if (!sound || soundPlaying.current) return;
-    const AudioContextClass =
-      window.AudioContext ??
-      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
+    const AudioContextClass = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const context = new AudioContextClass();
     const oscillator = context.createOscillator();
@@ -2464,10 +1423,7 @@ function RequestRail() {
     oscillator.connect(gain).connect(context.destination);
     oscillator.start();
     oscillator.stop(context.currentTime + 0.16);
-    oscillator.onended = () => {
-      soundPlaying.current = false;
-      void context.close();
-    };
+    oscillator.onended = () => { soundPlaying.current = false; void context.close(); };
   };
 
   useEffect(() => {
@@ -2490,247 +1446,63 @@ function RequestRail() {
     setOpen(next);
     sessionStorage.setItem(collapsedKey, String(!next));
   };
-  const act = async (
-    requestId: string,
-    action: "acknowledge" | "resolve" | "cancel",
-    name: string,
-  ) => {
+  const act = async (requestId: string, action: "acknowledge" | "resolve" | "cancel", name: string) => {
     try {
       setSnapshot(await dataStore.requestAction(classId, requestId, action));
-      if (action !== "acknowledge")
-        setUndo({
-          id: requestId,
-          name,
-          action: action === "resolve" ? "resolved" : "cleared",
-        });
+      if (action !== "acknowledge") setUndo({ id: requestId, name, action: action === "resolve" ? "resolved" : "cleared" });
     } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : "That request could not be updated.",
-      );
+      setError(reason instanceof Error ? reason.message : "That request could not be updated.");
     }
   };
   const wait = (joinedAt: string) => {
-    const minutes = Math.max(
-      0,
-      Math.floor((Date.now() - Date.parse(joinedAt)) / 60000),
-    );
+    const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(joinedAt)) / 60000));
     return minutes < 1 ? "just now" : `${minutes}m`;
   };
 
   return (
     <>
-      <button
-        className={`request-rail-toggle ${pulse ? "is-pulsing" : ""}`}
-        onClick={() => setRailOpen(!open)}
-        aria-expanded={open}
-        aria-controls="request-rail"
-        aria-label={`${open ? "Close" : "Open"} requests, ${prepared.requests.length} active, ${prepared.newIds.size} new`}
-      >
-        <span>Requests</span>
-        <b>{prepared.requests.length}</b>
-        {prepared.newIds.size > 0 && <i>{prepared.newIds.size} new</i>}
+      <button className={`request-rail-toggle ${pulse ? "is-pulsing" : ""}`} onClick={() => setRailOpen(!open)} aria-expanded={open} aria-controls="request-rail" aria-label={`${open ? "Close" : "Open"} requests, ${prepared.requests.length} active, ${prepared.newIds.size} new`}>
+        <span>Requests</span><b>{prepared.requests.length}</b>{prepared.newIds.size > 0 && <i>{prepared.newIds.size} new</i>}
       </button>
-      <p className="sr-only" aria-live="polite">
-        {prepared.alert}
-      </p>
-      {open && (
-        <button
-          className="request-rail-scrim"
-          aria-label="Close requests"
-          onClick={() => setRailOpen(false)}
-        />
-      )}
-      {open && (
-        <aside
-          id="request-rail"
-          className="request-rail is-open"
-          aria-label="Active student requests"
-        >
-          <header>
-            <div>
-              <p className="eyebrow">QUIET SIGNALS</p>
-              <h2>
-                Requests <span>{prepared.requests.length}</span>
-              </h2>
-            </div>
-            <button
-              className="icon-button"
-              onClick={() => setRailOpen(false)}
-              aria-label="Close requests"
-            >
-              ×
-            </button>
-          </header>
-          <label className="request-sound">
-            <input
-              type="checkbox"
-              checked={sound}
-              onChange={(event) => {
-                setSound(event.target.checked);
-                localStorage.setItem(
-                  "request-alert-sound",
-                  String(event.target.checked),
-                );
-              }}
-            />{" "}
-            Sound for new requests
-          </label>
-          <div className="request-rail-lanes">
-            {prepared.lanes
-              .filter((lane) => lane.requests.length > 0)
-              .map((lane) => {
-                const isCompletion = lane.behavior === "completion";
-                const expanded = !isCompletion || completionOpen[lane.id];
-                const activeAttention =
-                  lane.behavior === "attention"
-                    ? lane.requests.find(
-                        (request) => request.status === "active",
-                      )
-                    : undefined;
-                return (
-                  <section
-                    className="request-rail-lane"
-                    key={lane.id}
-                    style={{ "--lane": lane.color } as CSSProperties}
-                  >
-                    <div className="request-lane-heading">
-                      {isCompletion ? (
-                        <button
-                          onClick={() =>
-                            setCompletionOpen((value) => ({
-                              ...value,
-                              [lane.id]: !expanded,
-                            }))
-                          }
-                          aria-expanded={expanded}
-                        >
-                          <span>{lane.label}</span>
-                          <b>{lane.requests.length}</b>
-                          <i>{expanded ? "−" : "+"}</i>
-                        </button>
-                      ) : (
-                        <>
-                          <strong>{lane.label}</strong>
-                          <b>{lane.requests.length}</b>
-                        </>
-                      )}
-                      {lane.behavior === "attention" && activeAttention && (
-                        <button
-                          className="request-next"
-                          onClick={async () => {
-                            try {
-                              setSnapshot(
-                                await dataStore.acknowledgeNextRequest(classId),
-                              );
-                            } catch (reason) {
-                              setError(
-                                reason instanceof Error
-                                  ? reason.message
-                                  : "The next request could not be selected.",
-                              );
-                            }
-                          }}
-                        >
-                          Next
-                        </button>
-                      )}
+      <p className="sr-only" aria-live="polite">{prepared.alert}</p>
+      {open && <button className="request-rail-scrim" aria-label="Close requests" onClick={() => setRailOpen(false)} />}
+      {open && <aside id="request-rail" className="request-rail is-open" aria-label="Active student requests">
+        <header>
+          <div><p className="eyebrow">QUIET SIGNALS</p><h2>Requests <span>{prepared.requests.length}</span></h2></div>
+          <button className="icon-button" onClick={() => setRailOpen(false)} aria-label="Close requests">×</button>
+        </header>
+        <label className="request-sound"><input type="checkbox" checked={sound} onChange={(event) => { setSound(event.target.checked); localStorage.setItem("request-alert-sound", String(event.target.checked)); }} /> Sound for new requests</label>
+        <div className="request-rail-lanes">
+          {prepared.lanes.filter((lane) => lane.requests.length > 0).map((lane) => {
+            const isCompletion = lane.behavior === "completion";
+            const expanded = !isCompletion || completionOpen[lane.id];
+            const activeAttention = lane.behavior === "attention" ? lane.requests.find((request) => request.status === "active") : undefined;
+            return <section className="request-rail-lane" key={lane.id} style={{ "--lane": lane.color } as CSSProperties}>
+              <div className="request-lane-heading">
+                {isCompletion ? <button onClick={() => setCompletionOpen((value) => ({ ...value, [lane.id]: !expanded }))} aria-expanded={expanded}><span>{lane.label}</span><b>{lane.requests.length}</b><i>{expanded ? "−" : "+"}</i></button> : <><strong>{lane.label}</strong><b>{lane.requests.length}</b></>}
+                {lane.behavior === "attention" && activeAttention && <button className="request-next" onClick={async () => { try { setSnapshot(await dataStore.acknowledgeNextRequest(classId)); } catch (reason) { setError(reason instanceof Error ? reason.message : "The next request could not be selected."); } }}>Next</button>}
+              </div>
+              {expanded && <div className="request-items">
+                {lane.requests.map((request, index) => {
+                  const name = prepared.students.get(request.studentId)?.displayName ?? "Learner";
+                  return <article className={`request-item ${request.status} ${prepared.newIds.has(request.id) ? "is-new" : ""}`} key={request.id}>
+                    <div className="request-item-copy">
+                      {lane.behavior === "attention" && <span className="request-position">{index + 1}</span>}
+                      <span><strong>{name}</strong><small>{request.status === "acknowledged" ? "Acknowledged" : lane.behavior === "attention" ? `Waiting ${wait(request.joinedAt)}` : `Requested ${wait(request.joinedAt)}`}</small></span>
                     </div>
-                    {expanded && (
-                      <div className="request-items">
-                        {lane.requests.map((request, index) => {
-                          const name =
-                            prepared.students.get(request.studentId)
-                              ?.displayName ?? "Learner";
-                          return (
-                            <article
-                              className={`request-item ${request.status} ${prepared.newIds.has(request.id) ? "is-new" : ""}`}
-                              key={request.id}
-                            >
-                              <div className="request-item-copy">
-                                {lane.behavior === "attention" && (
-                                  <span className="request-position">
-                                    {index + 1}
-                                  </span>
-                                )}
-                                <span>
-                                  <strong>{name}</strong>
-                                  <small>
-                                    {request.status === "acknowledged"
-                                      ? "Acknowledged"
-                                      : lane.behavior === "attention"
-                                        ? `Waiting ${wait(request.joinedAt)}`
-                                        : `Requested ${wait(request.joinedAt)}`}
-                                  </small>
-                                </span>
-                              </div>
-                              <div className="request-actions">
-                                {request.status === "active" && (
-                                  <button
-                                    onClick={() =>
-                                      act(request.id, "acknowledge", name)
-                                    }
-                                  >
-                                    Acknowledge
-                                  </button>
-                                )}
-                                <button
-                                  className="request-resolve"
-                                  onClick={() =>
-                                    act(request.id, "resolve", name)
-                                  }
-                                >
-                                  {lane.resolveLabel}
-                                </button>
-                                <button
-                                  aria-label={`Clear ${name}'s request`}
-                                  onClick={() =>
-                                    act(request.id, "cancel", name)
-                                  }
-                                >
-                                  Clear
-                                </button>
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
-          </div>
-        </aside>
-      )}
-      {undo && (
-        <div className="request-undo" role="status">
-          <span>
-            {undo.name}'s request {undo.action}.
-          </span>
-          <button
-            onClick={async () => {
-              try {
-                setSnapshot(
-                  await dataStore.requestAction(classId, undo.id, "restore"),
-                );
-                setUndo(undefined);
-              } catch (reason) {
-                setError(
-                  reason instanceof Error
-                    ? reason.message
-                    : "That request could not be restored.",
-                );
-              }
-            }}
-          >
-            Undo
-          </button>
-          <button aria-label="Dismiss" onClick={() => setUndo(undefined)}>
-            ×
-          </button>
+                    <div className="request-actions">
+                      {request.status === "active" && <button onClick={() => act(request.id, "acknowledge", name)}>Acknowledge</button>}
+                      <button className="request-resolve" onClick={() => act(request.id, "resolve", name)}>{lane.resolveLabel}</button>
+                      <button aria-label={`Clear ${name}'s request`} onClick={() => act(request.id, "cancel", name)}>Clear</button>
+                    </div>
+                  </article>;
+                })}
+              </div>}
+            </section>;
+          })}
         </div>
-      )}
+      </aside>}
+      {undo && <div className="request-undo" role="status"><span>{undo.name}'s request {undo.action}.</span><button onClick={async () => { try { setSnapshot(await dataStore.requestAction(classId, undo.id, "restore")); setUndo(undefined); } catch (reason) { setError(reason instanceof Error ? reason.message : "That request could not be restored."); } }}>Undo</button><button aria-label="Dismiss" onClick={() => setUndo(undefined)}>×</button></div>}
     </>
   );
 }

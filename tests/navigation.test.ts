@@ -20,8 +20,4 @@ describe("teacher navigation", () => {
     expect(takeTodayNavigationIntent()).toEqual({ classId: "class", periodId: "period" });
     expect(takeTodayNavigationIntent()).toBeUndefined();
   });
-  it("passes a class-only intent from the class switcher", () => {
-    setTodayNavigationIntent({ classId: "class-b" });
-    expect(takeTodayNavigationIntent()).toEqual({ classId: "class-b" });
-  });
 });

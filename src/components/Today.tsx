@@ -27,23 +27,15 @@ export function Today() {
   const load = () => dataStore.getCalendar(day, day).then(setCalendar);
   useEffect(() => { void load().catch((error) => setError(error.message)); }, [day]);
   useEffect(() => {
-    if (!calendar) return;
     const intent = takeTodayNavigationIntent();
     if (!intent || intent.classId !== classId) return;
-    const item = todayClasses(calendar.classes, calendar.periods).find((candidate) => candidate.classRoom.id === intent.classId);
-    if (!item) return;
-    if (!intent.periodId && (!item.period || item.status === "scheduled")) {
-      setStarting(item);
-      return;
-    }
     void dataStore.getSnapshot(intent.classId, true).then((snapshot) => {
-      const periodId = intent.periodId ?? item.period?.id;
-      const period = snapshot.periods.find((candidate) => candidate.id === periodId);
+      const period = snapshot.periods.find((item) => item.id === intent.periodId);
       if (!period) throw new Error("That class day could not be found.");
       setSnapshot(snapshot);
       setWorkspace({ classId: intent.classId, periodId: period.id, attendance: period.status === "live" && !period.attendanceCompletedAt });
     }).catch((error) => setError(error instanceof Error ? error.message : "That class day could not be opened."));
-  }, [calendar, classId]);
+  }, [classId]);
   useEffect(() => {
     if (workspace && classId !== workspace.classId) setWorkspace(undefined);
   }, [classId]);

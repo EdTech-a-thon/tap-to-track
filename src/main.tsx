@@ -5,7 +5,6 @@ import { Auth } from "./components/Auth";
 import { Today } from "./components/Today";
 import { dataStore, type SyncStatus } from "./data";
 import { useApp } from "./state";
-import { setTodayNavigationIntent } from "./navigation";
 import "./styles.css";
 
 const Manage = lazy(() => import("./components/Manage").then((module) => ({ default: module.Manage })));
@@ -119,12 +118,7 @@ function TeacherApp() {
           <select
             id="class"
             value={app.classId}
-            onChange={(event) => {
-              const classId = event.target.value;
-              if (classId) setTodayNavigationIntent({ classId });
-              app.setClassId(classId);
-              app.setView("today");
-            }}
+            onChange={(event) => app.setClassId(event.target.value)}
           >
             <option value="">Choose a class</option>
             {app.classes.map((room) => (
