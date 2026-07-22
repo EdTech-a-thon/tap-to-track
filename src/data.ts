@@ -319,6 +319,9 @@ class BrowserDataStore implements DataStore {
     return this.reconcile(classId);
   }
   async finishPeriod(classId: string, periodId: string, confirmAttendanceIncomplete = false) {
+    // Attendance and evidence updates are queued for offline use. Send them before
+    // closing the class day so the server still accepts those updates.
+    await this.sync();
     await request(`/classes/${classId}/periods/${periodId}/finish`, {
       method: "POST",
       body: JSON.stringify({ confirmAttendanceIncomplete }),

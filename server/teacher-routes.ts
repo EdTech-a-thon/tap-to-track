@@ -510,6 +510,9 @@ export function registerTeacherRoutes(app: FastifyInstance, db: AppDatabase, pho
     const body = object(request.body ?? {});
     const period = db.prepare("SELECT status, attendanceCompletedAt FROM periods WHERE id = ? AND classId = ? AND teacherId = ?").get(periodId, classId, teacherId) as { status: PeriodStatus; attendanceCompletedAt: string | null } | undefined;
     if (!period) return reply.code(404).send({ error: "Period not found" });
+    // Finishing may be repeated after a delayed browser request. A closed day is
+    // already in the requested state, so acknowledge it instead of leaving a failed save.
+    if (period.status === "closed") return { id: periodId, classId, status: "closed", active: false, scheduled: false };
     if (period.status !== "live") return reply.code(409).send({ error: "Only a class day in progress can be finished" });
     const hasAttendance = Boolean(db.prepare("SELECT 1 FROM attendance WHERE periodId = ? AND classId = ? AND teacherId = ? LIMIT 1").get(periodId, classId, teacherId));
     if (hasAttendance && !period.attendanceCompletedAt && body.confirmAttendanceIncomplete !== true)

@@ -1400,6 +1400,15 @@ describe("Tap-to-Track server", () => {
       (
         await server.inject({
           method: "POST",
+          url: `/api/classes/${room.id}/periods/${second.id}/finish`,
+          cookies: { session },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await server.inject({
+          method: "POST",
           url: `/api/classes/${room.id}/events`,
           cookies: { session },
           payload: { studentId, periodId: second.id, type: "part+" },
