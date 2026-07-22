@@ -880,7 +880,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
               : undefined;
             const participationMode =
               lens === "participation" && !attendanceMode && !arranging;
-            const cardActionsVisible = !mapMode || effectiveScale >= 0.7;
+            const cardActionsVisible = !mapMode || effectiveScale >= 0.3;
             return (
               <div
                 className={`${mapMode ? "seat-position" : "grid-position"} ${highlightedStudentId === student.id ? "student-jump-highlight" : ""}`}
@@ -947,9 +947,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
                           ? updateAttendance(student)
                           : lens === "skills"
                             ? handleSkillTap(student)
-                            : participationMode && mapMode && !cardActionsVisible
-                              ? setActionStudentId(student.id)
-                              : undefined
+                            : undefined
                   }
                   onPositive={() => participate(student, 1)}
                   onNegative={() => participate(student, -1)}
@@ -982,7 +980,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
           }}
         </StudentGrid>
       )}
-      {mapMode && !arranging && lens === "participation" && effectiveScale < 0.7 && actionStudentId && (() => {
+      {mapMode && !arranging && lens === "participation" && effectiveScale < 0.3 && actionStudentId && (() => {
         const student = activeStudents.find((item) => item.id === actionStudentId);
         if (!student) return null;
         return <section className="seating-action-tray" role="dialog" aria-label={`Participation actions for ${student.displayName}`}>

@@ -94,9 +94,10 @@ export function StudentTile({
       {detail && <small>{detail}</small>}
     </>
   );
+  const compactMapActions = seatingScale !== undefined && seatingScale < 0.75;
   return (
     <article
-      className={`student-tile ${attendance === "absent" ? "is-absent" : ""} ${selected ? "is-selected" : ""} ${attendancePass ? "attendance-pass-tile" : ""} ${arranging ? "is-arranging" : ""} ${participation ? "participation-tile" : ""} ${participation && !showCardActions ? "card-actions-hidden" : ""} ${seatingScale !== undefined ? `seating-tile ${seatingScale < 0.55 ? "seating-tile-tiny" : ""}` : ""} ${notLogged ? "not-logged" : ""} ${feedback ? `flash-${feedback}` : ""}`}
+      className={`student-tile ${attendance === "absent" ? "is-absent" : ""} ${selected ? "is-selected" : ""} ${attendancePass ? "attendance-pass-tile" : ""} ${arranging ? "is-arranging" : ""} ${participation ? "participation-tile" : ""} ${participation && !showCardActions ? "card-actions-hidden" : ""} ${seatingScale !== undefined ? `seating-tile ${seatingScale < 0.3 ? "seating-tile-tiny" : ""}` : ""} ${notLogged ? "not-logged" : ""} ${feedback ? `flash-${feedback}` : ""}`}
     >
       {participation && !arranging ? (
         <button
@@ -157,10 +158,7 @@ export function StudentTile({
               }}
               aria-label={`Add Positive Action for ${student.displayName}`}
             >
-              <span>
-                <b>+</b> <span className="action-label-full">Positive Action</span><span className="action-label-short">Action</span>
-              </span>
-              <small>{positives ?? 0} today</small>
+              {compactMapActions ? <b className="map-action-symbol">+</b> : <><span><b>+</b> <span className="action-label-full">Positive Action</span><span className="action-label-short">Action</span></span><small>{positives ?? 0} today</small></>}
             </button>
             <button
               className="redirect-action"
@@ -172,10 +170,7 @@ export function StudentTile({
               }}
               aria-label={`Record Redirect for ${student.displayName}`}
             >
-              <span>
-                <b>−</b> <span className="action-label-full">Redirect</span><span className="action-label-short">Redirect</span>
-              </span>
-              <small>{negatives ?? 0} today</small>
+              {compactMapActions ? <b className="map-action-symbol">−</b> : <><span><b>−</b> <span className="action-label-full">Redirect</span><span className="action-label-short">Redirect</span></span><small>{negatives ?? 0} today</small></>}
             </button>
           </div>
         )}
