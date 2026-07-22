@@ -71,5 +71,5 @@ export function getClassSnapshot(db: AppDatabase, teacherId: string, classId: st
 }
 
 export function getTeacherClasses(db: AppDatabase, teacherId: string) {
-  return (db.prepare("SELECT * FROM classes WHERE teacherId = ? ORDER BY createdAt DESC").all(teacherId) as Row[]).map(classRoom);
+  return (db.prepare("SELECT * FROM classes WHERE teacherId = ? ORDER BY name COLLATE NOCASE, createdAt DESC").all(teacherId) as Row[]).map(classRoom);
 }

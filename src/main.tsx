@@ -18,6 +18,10 @@ if ("serviceWorker" in navigator) installUpdate = registerSW({
   onNeedRefresh: () => window.dispatchEvent(new Event("tap-app-update")),
 });
 
+function sortClasses<T extends { name: string }>(classes: T[]) {
+  return [...classes].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
+}
+
 function TeacherApp() {
   const app = useApp();
   const [signedIn, setSignedIn] = useState<boolean>();
@@ -35,10 +39,11 @@ function TeacherApp() {
     }
     setSignedIn(true);
     const classes = await dataStore.getClasses();
-    app.setClasses(classes);
-    const classId = classes.some((item) => item.id === app.classId)
+    const orderedClasses = sortClasses(classes);
+    app.setClasses(orderedClasses);
+    const classId = orderedClasses.some((item) => item.id === app.classId)
       ? app.classId
-      : (classes[0]?.id ?? "");
+      : (orderedClasses[0]?.id ?? "");
     if (classId !== app.classId) app.setClassId(classId);
     if (classId) app.setSnapshot(await dataStore.getSnapshot(classId, true));
     app.setLoading(false);
@@ -98,7 +103,7 @@ function TeacherApp() {
     const name = prompt("Class name");
     if (!name?.trim()) return;
     const room = await dataStore.createClass(name.trim());
-    app.setClasses([...app.classes, room]);
+    app.setClasses(sortClasses([...app.classes, room]));
     app.setClassId(room.id);
   };
   return (
