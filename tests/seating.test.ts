@@ -34,6 +34,14 @@ describe("seating geometry", () => {
     });
   });
 
+  it("centers seats stored at negative coordinates", () => {
+    const bounds = seatBounds([{ x: -50, y: -40 }, { x: 200, y: 180 }]);
+    const transform = fitSeats(bounds, 800, 600);
+
+    expect(transform.translateX + bounds.minX * transform.scale).toBeCloseTo((800 - bounds.width * transform.scale) / 2);
+    expect(transform.translateY + bounds.minY * transform.scale).toBeCloseTo((600 - bounds.height * transform.scale) / 2);
+  });
+
   it("converts transformed screen coordinates back to room coordinates", () => {
     const transform = { scale: 0.5, translateX: 45, translateY: 49 };
     expect(screenToSeat(410, 270, 110, 70, transform)).toEqual({ x: 510, y: 302 });
