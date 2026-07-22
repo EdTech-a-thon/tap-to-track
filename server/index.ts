@@ -221,6 +221,7 @@ export async function buildServer(options: ServerOptions = {}) {
   if (production && existsSync(dist)) {
     await app.register(fastifyStatic, {
       root: dist,
+      wildcard: false,
       setHeaders(reply, filePath) {
         if (/assets\/index-(?:bwJgPW9Y|B1jKkSO8)\.(?:js|css)$/i.test(filePath))
           reply.header("Cache-Control", "no-store, max-age=0");
