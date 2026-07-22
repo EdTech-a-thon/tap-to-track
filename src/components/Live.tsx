@@ -84,8 +84,9 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     setActionStudentId("");
     setMapMode(openSeating || snapshot?.classRoom.settings.layout === "map");
     const savedScale = snapshot ? Number(localStorage.getItem(`seating-zoom:${snapshot.classRoom.id}`)) : NaN;
-    setMapScale(Number.isFinite(savedScale) && savedScale >= 0.05 && savedScale <= 1.5 ? savedScale : 1);
-    setFitMap(!Number.isFinite(savedScale));
+    const hasSavedScale = Number.isFinite(savedScale) && savedScale >= 0.05 && savedScale <= 1.5;
+    setMapScale(hasSavedScale ? savedScale : 1);
+    setFitMap(!hasSavedScale);
     const savedDensity = snapshot
       ? localStorage.getItem(`roster-density:${snapshot.classRoom.id}`)
       : null;
