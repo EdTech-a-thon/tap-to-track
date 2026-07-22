@@ -397,7 +397,10 @@ export function registerTeacherRoutes(app: FastifyInstance, db: AppDatabase, pho
       notify(app, classId);
       refreshStudents(app, classId, "groups");
       return reply.code(201).send({ id: groupId });
-    } catch (error) { return reply.code(400).send({ error: (error as Error).message }); }
+    } catch (error) {
+      if ((error as { code?: string }).code === "SQLITE_CONSTRAINT_UNIQUE") return reply.code(409).send({ error: "A group with that name already exists. Choose a different name." });
+      return reply.code(400).send({ error: (error as Error).message });
+    }
   });
 
   app.patch("/api/classes/:classId/groups/:groupId", auth, async (request, reply) => {

@@ -138,6 +138,31 @@ describe("Tap-to-Track server", () => {
     expect(classes.json()).toEqual({ classes: [] });
   });
 
+  it("rejects duplicate group names without creating another group", async () => {
+    const server = await app();
+    const session = await signup(server, "groups@example.com");
+    const room = await createClass(server, session);
+
+    const first = await server.inject({
+      method: "POST",
+      url: `/api/classes/${room.id}/groups`,
+      cookies: { session },
+      payload: { label: "Table 1" },
+    });
+    const duplicate = await server.inject({
+      method: "POST",
+      url: `/api/classes/${room.id}/groups`,
+      cookies: { session },
+      payload: { label: "table 1" },
+    });
+    const snapshot = await server.inject({ method: "GET", url: `/api/classes/${room.id}/snapshot`, cookies: { session } });
+
+    expect(first.statusCode).toBe(201);
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.json()).toEqual({ error: "A group with that name already exists. Choose a different name." });
+    expect(snapshot.json().groups).toHaveLength(1);
+  });
+
   it("keeps durable requests ordered, independent, private, and tenant-isolated", async () => {
     const server = await app();
     const owner = await signup(server, "requests@example.com");

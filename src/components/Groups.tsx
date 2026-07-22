@@ -29,9 +29,14 @@ export function Groups() {
   const addGroup = async (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim() || adding) return;
+    const label = name.trim();
+    if (snapshot.groups.some((group) => group.label.localeCompare(label, undefined, { sensitivity: "accent" }) === 0)) {
+      setMessage("A group with that name already exists. Choose a different name.");
+      return;
+    }
     setAdding(true);
     try {
-      await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/groups`, "POST", { label: name.trim() });
+      await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/groups`, "POST", { label });
       await refresh();
       setName("");
     } catch (error) {
