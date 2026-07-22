@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { dataStore } from "../data";
 import { useApp } from "../state";
 import { localDay, todayClasses, type TodayClass } from "../todayFlow";
@@ -22,6 +22,7 @@ export function Today() {
   const [workspace, setWorkspace] = useState<Workspace>();
   const [starting, setStarting] = useState<TodayClass>();
   const [busy, setBusy] = useState(false);
+  const previousClassId = useRef(classId);
   const day = localDay();
 
   const load = () => dataStore.getCalendar(day, day).then(setCalendar);
@@ -39,6 +40,18 @@ export function Today() {
   useEffect(() => {
     if (workspace && classId !== workspace.classId) setWorkspace(undefined);
   }, [classId]);
+  useEffect(() => {
+    const switchedClass = previousClassId.current !== classId;
+    previousClassId.current = classId;
+    if (!switchedClass || !classId) return;
+
+    void dataStore.getSnapshot(classId, true).then((snapshot) => {
+      const period = snapshot.periods.find((item) => item.status === "live");
+      if (!period) return;
+      setSnapshot(snapshot);
+      setWorkspace({ classId, periodId: period.id });
+    }).catch((error) => setError(error instanceof Error ? error.message : "That class could not be opened."));
+  }, [classId, setError, setSnapshot]);
 
   const open = async (item: TodayClass) => {
     if (!item.period) return setStarting(item);
