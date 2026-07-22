@@ -1,41 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-
-let previousIndexContents = "";
-const staleAssetBridge = {
-  name: "stale-asset-bridge",
-  buildStart() {
-    const currentIndex = resolve("dist/index.html");
-    previousIndexContents = existsSync(currentIndex) ? readFileSync(currentIndex, "utf8") : "";
-  },
-  closeBundle() {
-    const assets = resolve("dist/assets");
-    const files = readdirSync(assets);
-    const currentScript = files.find((file) => /^index-.*\.js$/.test(file));
-    const currentStyles = files.find((file) => /^index-.*\.css$/.test(file));
-    if (currentScript) copyFileSync(resolve(assets, currentScript), resolve(assets, "index-bwJgPW9Y.js"));
-    if (currentStyles) copyFileSync(resolve(assets, currentStyles), resolve(assets, "index-B1jKkSO8.css"));
-    const previousIndex = resolve("dist/.previous-index.html");
-    const currentIndex = resolve("dist/index.html");
-    if (previousIndexContents) {
-      const previousScript = previousIndexContents.match(/\/assets\/(index-[^"']+\.js)/)?.[1];
-      const previousStyles = previousIndexContents.match(/\/assets\/(index-[^"']+\.css)/)?.[1];
-      if (currentScript && previousScript && !existsSync(resolve(assets, previousScript))) copyFileSync(resolve(assets, currentScript), resolve(assets, previousScript));
-      if (currentStyles && previousStyles && !existsSync(resolve(assets, previousStyles))) copyFileSync(resolve(assets, currentStyles), resolve(assets, previousStyles));
-    }
-    writeFileSync(previousIndex, readFileSync(currentIndex));
-  },
-};
 
 export default defineConfig({
   plugins: [
     react(),
-    staleAssetBridge,
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       injectRegister: false,
       workbox: {
         navigateFallback: "/index.html",
