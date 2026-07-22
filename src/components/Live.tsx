@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type ChangeEvent, type ReactNode } from "react";
+import { forwardRef, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type ChangeEvent, type ForwardedRef, type ReactNode } from "react";
 import { achievementDisplay, achievementOptions, assessableSkills, parentSummary, parentSummaryText, rapidAssessmentReducer } from "../assessment";
 import { dataStore, RequestError } from "../data";
 import { participationInsights } from "../participation";
@@ -1000,7 +1000,14 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
       )}
       <RequestRail />
       {skillStudentId && (
-        <SkillChecklist
+        focusedChecklistEnabled ? <ChecklistScreen
+          student={snapshot.students.find(
+            (item) => item.id === skillStudentId,
+          )!}
+          onClose={() => setSkillStudentId("")}
+          masteryFor={(id) => masteryFor(skillStudentId, id)}
+          onAssess={(id, update) => setAssessment(snapshot.students.find((item) => item.id === skillStudentId)!, id, update)}
+        /> : <LegacySkillChecklist
           student={snapshot.students.find(
             (item) => item.id === skillStudentId,
           )!}
@@ -1250,7 +1257,179 @@ function ParticipationBar({
   );
 }
 
-function SkillChecklist({
+const focusedChecklistEnabled = import.meta.env.VITE_FOCUSED_CHECKLIST !== "false";
+
+type ChecklistScore = { level: Achievement; support: boolean; photoCount: number };
+
+function ChecklistScreen({
+  student,
+  onClose,
+  masteryFor,
+  onAssess,
+}: {
+  student: Student;
+  onClose: () => void;
+  masteryFor: (id: string) => { achievement: Achievement; requiresSupport: boolean };
+  onAssess: (id: string, update: { achievement?: Achievement; requiresSupport?: boolean }) => void;
+}) {
+  const { snapshot } = useApp();
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<import("../types").SkillPhoto[]>([]);
+  const [railHeight, setRailHeight] = useState(0);
+  const [message, setMessage] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const openedAt = useRef(Date.now());
+  const scoredAtOpen = useRef(0);
+  const listRef = useRef<HTMLElement>(null);
+  const railRef = useRef<HTMLElement>(null);
+  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const activePeriod = snapshot?.periods.find((period) => period.status === "live");
+
+  const items = useMemo(() => snapshot ? assessableSkills(snapshot.skills) : [], [snapshot]);
+  const scores = useMemo(() => new Map(items.map((item) => {
+    const mastery = masteryFor(item.id);
+    return [item.id, { level: mastery.achievement, support: mastery.requiresSupport, photoCount: photos.filter((photo) => photo.skillId === item.id).length } satisfies ChecklistScore];
+  })), [items, masteryFor, photos]);
+  const assessedCount = [...scores.values()].filter((score) => score.level !== "not_started").length;
+  const allScored = items.length > 0 && assessedCount === items.length;
+  const focused = items.find((item) => item.id === focusedId) ?? null;
+
+  useEffect(() => {
+    if (!snapshot) return;
+    void dataStore.getSkillPhotos(snapshot.classRoom.id, student.id).then(setPhotos).catch(() => setPhotoError("Photo evidence could not be loaded."));
+  }, [snapshot?.classRoom.id, student.id]);
+  useEffect(() => {
+    setFocusedId(items.find((item) => scores.get(item.id)?.level === "not_started")?.id ?? null);
+    scoredAtOpen.current = assessedCount;
+    openedAt.current = Date.now();
+  }, [student.id]);
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const measure = () => setRailHeight(rail.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(rail);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!focused || event.target instanceof HTMLInputElement) return;
+      const index = items.findIndex((item) => item.id === focused.id);
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+        event.preventDefault();
+        focusItem(items[Math.min(items.length - 1, index + 1)]?.id ?? null, false);
+      }
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        focusItem(items[Math.max(0, index - 1)]?.id ?? null, false);
+      }
+      if (["1", "2", "3", "4"].includes(event.key)) {
+        event.preventDefault();
+        setLevel(achievementOptions[Number(event.key) - 1].value);
+      }
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        toggleSupport();
+      }
+    };
+    addEventListener("keydown", onKeyDown);
+    return () => removeEventListener("keydown", onKeyDown);
+  }, [focused, items, scores]);
+  if (!snapshot) return null;
+
+  const focusItem = (id: string | null, scroll: boolean) => {
+    setFocusedId(id);
+    if (!id || !scroll) return;
+    requestAnimationFrame(() => {
+      const row = rowRefs.current.get(id);
+      const list = listRef.current;
+      if (!row || !list) return;
+      const rowBox = row.getBoundingClientRect();
+      const listBox = list.getBoundingClientRect();
+      if (rowBox.top >= listBox.top && rowBox.bottom <= listBox.bottom) return;
+      row.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
+  };
+  const nextUnscored = (currentId: string) => {
+    const index = items.findIndex((item) => item.id === currentId);
+    return [...items.slice(index + 1), ...items.slice(0, index)].find((item) => scores.get(item.id)?.level === "not_started")?.id ?? null;
+  };
+  const setLevel = (level: Achievement) => {
+    if (!focused) return;
+    onAssess(focused.id, { achievement: level });
+    window.dispatchEvent(new CustomEvent("checklist-score", { detail: { version: "focused-rail", studentId: student.id, skillId: focused.id, level } }));
+    const nextId = nextUnscored(focused.id);
+    if (nextId) {
+      const next = items.find((item) => item.id === nextId)!;
+      setMessage(`${focused.label} set to ${achievementDisplay(level).label}. Now scoring ${next.label}.`);
+      focusItem(nextId, true);
+    } else {
+      setMessage(`${focused.label} set to ${achievementDisplay(level).label}. All skills scored.`);
+      focusItem(focused.id, false);
+      if (!allScored && items.length > scoredAtOpen.current) {
+        window.dispatchEvent(new CustomEvent("checklist-complete", { detail: { version: "focused-rail", studentId: student.id, scoredSkills: items.length - scoredAtOpen.current, elapsedMs: Date.now() - openedAt.current } }));
+      }
+    }
+  };
+  const toggleSupport = () => {
+    if (!focused) return;
+    onAssess(focused.id, { requiresSupport: !scores.get(focused.id)?.support });
+  };
+  const upload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !focused) return;
+    setUploading(true); setPhotoError("");
+    try {
+      const image = await resizeEvidencePhoto(file);
+      const photo = await dataStore.uploadSkillPhoto(snapshot.classRoom.id, student.id, focused.id, image, { filename: file.name, periodId: activePeriod?.id, assessedAt: new Date().toISOString() });
+      setPhotos((current) => [photo, ...current]);
+    } catch (error) {
+      setPhotoError(`Couldn't save ${focused.label}. Retry.`);
+    } finally { setUploading(false); }
+  };
+  const scoreFor = (id: string) => scores.get(id)!;
+  return <aside className="drawer focused-checklist" role="dialog" aria-modal="true" aria-label={`${student.displayName} skills`}>
+    <header className="focused-checklist-header">
+      <button className="drawer-close" onClick={onClose}>Close</button>
+      <ProgressHeader student={student} assessed={assessedCount} total={items.length} />
+    </header>
+    <section className="focused-checklist-list" ref={listRef} style={{ paddingBottom: railHeight + 16 }}>
+      {snapshot.skills.filter((skill) => !skill.parentSkillId).map((skill) => {
+        const children = snapshot.skills.filter((child) => child.parentSkillId === skill.id);
+        if (!children.length) return <SkillRow key={skill.id} skill={skill} score={scoreFor(skill.id)} focused={focusedId === skill.id} onFocus={() => focusItem(skill.id, false)} rowRef={(node) => { if (node) rowRefs.current.set(skill.id, node); }} />;
+        const completed = children.filter((child) => scoreFor(child.id).level !== "not_started").length;
+        return <section className="focused-skill-family" key={skill.id}><SkillGroupHeader label={skill.label} completed={completed} total={children.length} />{children.map((child) => <SkillRow key={child.id} skill={child} score={scoreFor(child.id)} focused={focusedId === child.id} inset onFocus={() => focusItem(child.id, false)} rowRef={(node) => { if (node) rowRefs.current.set(child.id, node); }} />)}</section>;
+      })}
+      {!items.length && <p>No skills yet. Add a checklist in Classes.</p>}
+    </section>
+    <p className="sr-only" aria-live="polite">{message}</p>
+    {(photoError) && <p className="focused-checklist-error" role="status">{photoError}</p>}
+    <ForwardScoringRail ref={railRef} skill={focused} score={focused ? scoreFor(focused.id) : null} allScored={allScored} uploading={uploading} onLevel={setLevel} onNext={() => focused && focusItem(nextUnscored(focused.id), true)} onSupport={toggleSupport} onPhoto={() => photoInputRef.current?.click()} />
+    <input ref={photoInputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={upload} />
+  </aside>;
+}
+
+function ProgressHeader({ student, assessed, total }: { student: Student; assessed: number; total: number }) {
+  return <div className="checklist-progress"><div><p className="eyebrow">Skills checklist</p><h2>{student.displayName}</h2><span>{assessed} of {total} assessed</span></div><div className="segmented-progress" aria-label={`${assessed} of ${total} skills assessed`}>{Array.from({ length: total }, (_, index) => <i className={index < assessed ? "complete" : ""} key={index} />)}</div></div>;
+}
+
+function SkillGroupHeader({ label, completed, total }: { label: string; completed: number; total: number }) {
+  return <header className="focused-group-header"><strong>{label}</strong><span>{completed} of {total}</span></header>;
+}
+
+function SkillRow({ skill, score, focused, inset = false, onFocus, rowRef }: { skill: import("../types").Skill; score: ChecklistScore; focused: boolean; inset?: boolean; onFocus: () => void; rowRef: (node: HTMLButtonElement | null) => void }) {
+  const label = achievementDisplay(score.level).label;
+  return <button ref={rowRef} className={`focused-skill-row ${focused ? "is-focused" : ""} ${inset ? "is-subskill" : ""}`} onClick={onFocus} aria-pressed={focused} aria-label={`${skill.label}, ${label}${score.support ? ", requires support" : ""}`}><strong>{skill.label}</strong><span className="focused-row-state">{score.support && <i className="support-diamond" aria-label="Requires support">◇</i>}<b className={`focused-state-chip ${score.level}`}>{label}</b>{score.photoCount > 0 && <em aria-label={`${score.photoCount} photos`}>▣ {score.photoCount}</em>}</span></button>;
+}
+
+const ScoringRail = ({ skill, score, allScored, uploading, onLevel, onNext, onSupport, onPhoto }: { skill: import("../types").Skill | null; score: ChecklistScore | null; allScored: boolean; uploading: boolean; onLevel: (level: Achievement) => void; onNext: () => void; onSupport: () => void; onPhoto: () => void }, ref: ForwardedRef<HTMLElement>) => <section className="scoring-rail" ref={ref} aria-label="Scoring controls"><div className="scoring-rail-heading"><strong>{allScored ? "All skills scored." : skill ? `Scoring ${skill.label}` : "All skills scored."}</strong><button onClick={onNext} disabled={!skill || allScored}>Next unscored <span aria-hidden="true">→</span></button></div><div className="scoring-levels" role="radiogroup" aria-label={skill ? `Score ${skill.label}` : "No skill selected"}>{achievementOptions.map((option, index) => <button role="radio" aria-checked={score?.level === option.value} disabled={!skill || allScored} className={score?.level === option.value ? "selected" : ""} onClick={() => onLevel(option.value)} key={option.value}>{index === 0 ? "None" : option.label}</button>)}</div><div className="scoring-rail-actions"><button className={score?.support ? "support-on" : ""} onClick={onSupport} disabled={!skill}>◇ Requires support</button><button onClick={onPhoto} disabled={!skill || uploading}>{uploading ? "Saving photo..." : "Add photo"}</button></div></section>;
+const ForwardScoringRail = forwardRef(ScoringRail);
+
+function LegacySkillChecklist({
   student,
   onClose,
   masteryFor,

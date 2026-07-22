@@ -2764,6 +2764,100 @@ textarea {
   margin-left: 1.4rem;
   min-height: 58px;
 }
+.focused-checklist {
+  width: min(620px, 100vw);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.focused-checklist-header {
+  padding: 1rem 1rem .75rem;
+  border-bottom: 1px solid #ded9cf;
+}
+.focused-checklist-header .drawer-close { min-height: 44px; }
+.checklist-progress { clear: both; display: grid; gap: .65rem; }
+.checklist-progress h2 { margin: .1rem 0; }
+.checklist-progress span { color: #586963; font-size: .82rem; font-weight: 700; }
+.segmented-progress { display: flex; gap: 3px; }
+.segmented-progress i { height: 7px; flex: 1; min-width: 2px; border-radius: 99px; background: #dce1dd; }
+.segmented-progress i.complete { background: #387d5a; }
+.focused-checklist-list { flex: 1; overflow: auto; min-height: 0; }
+.focused-skill-family { border-bottom: 1px solid #ded9cf; }
+.focused-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+  padding: .55rem 1rem;
+  color: #294e43;
+  background: #edf2ef;
+  border-bottom: 1px solid #d1dcd6;
+}
+.focused-group-header span { color: #587066; font-size: .78rem; font-weight: 800; }
+.focused-skill-row {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .55rem 1rem;
+  color: #203d35;
+  background: #fffdf8;
+  border: 0;
+  border-bottom: 1px solid #e6e1d7;
+  border-left: 2px solid transparent;
+  text-align: left;
+}
+.focused-skill-row.is-subskill { padding-left: calc(1rem + 12px); }
+.focused-skill-row.is-focused { border-left-color: #267550; background: #f2f8f4; box-shadow: inset 0 0 0 1px #d6e6dc; }
+.focused-skill-row.is-focused > strong { font-weight: 500; }
+.focused-skill-row > strong { min-width: 0; font-size: .91rem; overflow-wrap: break-word; }
+.focused-row-state { display: flex; align-items: center; justify-content: flex-end; gap: .35rem; flex-shrink: 0; }
+.support-diamond { color: #a56413; font-size: 1.1rem; font-style: normal; line-height: 1; }
+.focused-state-chip { white-space: nowrap; font-size: .7rem; font-weight: 800; }
+.focused-state-chip.not_started { color: #718078; font-weight: 700; }
+.focused-state-chip.approaching { color: #765515; background: #faedc7; padding: .22rem .4rem; border-radius: 99px; }
+.focused-state-chip.meets { color: #206043; background: #dcefe2; padding: .22rem .4rem; border-radius: 99px; }
+.focused-state-chip.exceeds { color: #275a79; background: #dcebf5; padding: .22rem .4rem; border-radius: 99px; }
+.focused-row-state em { color: #416b5b; font-size: .7rem; font-style: normal; font-weight: 800; white-space: nowrap; }
+.scoring-rail {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  width: min(620px, 100vw);
+  display: grid;
+  gap: .55rem;
+  padding: .7rem 1rem max(14px, env(safe-area-inset-bottom));
+  background: #fffdf8;
+  border-top: 1px solid #cfd8d2;
+  box-shadow: 0 -8px 24px #19392b1f;
+}
+.scoring-rail-heading { min-height: 30px; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.scoring-rail-heading strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .88rem; }
+.scoring-rail button { min-height: 44px; }
+.scoring-rail-heading button { min-height: 36px; padding: .25rem; color: #2b6e50; border: 0; background: transparent; font-size: .75rem; font-weight: 800; white-space: nowrap; }
+.scoring-levels { display: flex; gap: 6px; }
+.scoring-levels button { min-width: 0; flex: 1; padding: .3rem 2px; color: #466258; border: 1px solid #b9c8c0; border-radius: 8px; background: #fff; font-size: clamp(.64rem, 3vw, .76rem); font-weight: 800; white-space: nowrap; }
+.scoring-levels button.selected { color: #174b37; border: 2px solid #267550; background: #e2f1e7; }
+.scoring-levels button:disabled, .scoring-rail-actions button:disabled { opacity: .45; }
+.scoring-rail-actions { display: flex; justify-content: space-between; gap: .5rem; }
+.scoring-rail-actions button { padding: .35rem .55rem; color: #50665d; border: 1px solid #bdc8c2; border-radius: 8px; background: #fff; font-size: .76rem; font-weight: 800; }
+.scoring-rail-actions button.support-on { color: #805013; border-color: #d3a548; background: #fff3d4; }
+.focused-checklist-error { position: fixed; right: 1rem; bottom: 190px; z-index: 50; margin: 0; padding: .5rem .7rem; color: #8b301f; background: #fff0eb; border: 1px solid #e7b5a9; border-radius: 8px; font-size: .78rem; font-weight: 700; }
+@media (max-width: 360px) {
+  .focused-checklist-header { padding-left: .75rem; padding-right: .75rem; }
+  .focused-skill-row { padding-left: .75rem; padding-right: .75rem; }
+  .focused-skill-row.is-subskill { padding-left: calc(.75rem + 12px); }
+  .scoring-rail { padding-left: .65rem; padding-right: .65rem; }
+}
+@media (prefers-reduced-motion: reduce) { .focused-skill-row, .focused-state-chip, .scoring-levels button { transition: none; } }
 @media (orientation: landscape) and (max-height: 850px) {
   .rapid-controls {
     padding: 0.45rem 0.65rem;
