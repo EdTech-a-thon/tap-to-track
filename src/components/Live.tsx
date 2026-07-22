@@ -1300,6 +1300,13 @@ function ChecklistScreen({
     if (!snapshot) return;
     void dataStore.getSkillPhotos(snapshot.classRoom.id, student.id).then(setPhotos).catch(() => setPhotoError("Photo evidence could not be loaded."));
   }, [snapshot?.classRoom.id, student.id]);
+  useEffect(() => dataStore.subscribeSyncStatus((status) => {
+    const failed = status.failed.find((change) => change.path.includes(`/mastery/${student.id}/`));
+    if (!failed) return;
+    const skillId = failed.path.split("/").at(-1);
+    const skill = items.find((item) => item.id === skillId);
+    if (skill) setMessage(`Couldn't save ${skill.label}. Retry.`);
+  }), [items, student.id]);
   useEffect(() => {
     setFocusedId(items.find((item) => scores.get(item.id)?.level === "not_started")?.id ?? null);
     scoredAtOpen.current = assessedCount;
