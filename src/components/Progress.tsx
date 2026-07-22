@@ -75,7 +75,7 @@ export function Progress() {
     {loading && <p className="loading-inline" role="status">Updating report...</p>}
     {!loading && report && <>
       {tab === "insights" && <Insights report={report} students={students} onSelect={setSelectedId}/>} 
-      {tab === "participation" && <Participation students={students} report={report} snapshot={snapshot} classId={classId} onRefresh={refresh} onSelect={setSelectedId}/>} 
+      {tab === "participation" && <Participation students={students} report={report} onSelect={setSelectedId}/>}
       {tab === "skills" && <Skills report={report} students={students}/>} 
     </>}
     {selected && report && <StudentEvidence classId={classId} student={selected} report={report} snapshot={snapshot} onRefresh={refresh} onClose={() => setSelectedId(undefined)}/>} 
@@ -124,25 +124,9 @@ function SortableHeader({ label, active, direction, onClick }: { label: string; 
   return <th scope="col" aria-sort={active ? direction : "none"}><button className="sortable-header" onClick={onClick}>{label}<span aria-hidden="true">{active ? direction === "ascending" ? " ▲" : " ▼" : " ↕"}</span></button></th>;
 }
 
-function Participation({ report, students, snapshot, classId, onRefresh, onSelect }: { report: ClassReport; students: ReportStudent[]; snapshot: Snapshot; classId: string; onRefresh: () => Promise<void>; onSelect: (id: string) => void }) {
+function Participation({ report, students, onSelect }: { report: ClassReport; students: ReportStudent[]; onSelect: (id: string) => void }) {
   const ordered = useMemo(() => [...students].sort((a, b) => a.participatedPeriods - b.participatedPeriods || a.displayName.localeCompare(b.displayName)), [students]);
-  return <><section className="matrix-wrap card"><table className="report-table"><caption>Participation counts for every filtered learner</caption><thead><tr><th scope="col">Learner</th><th scope="col">Eligible class days</th><th scope="col">Positive Action days</th><th scope="col">Last action</th><th scope="col">Positive Actions</th><th scope="col">Redirects</th></tr></thead><tbody>{ordered.map((student) => <tr key={student.studentId}><th scope="row"><button onClick={() => onSelect(student.studentId)}>{student.displayName}</button></th><td>{student.participationEligiblePeriods}</td><td><strong>{student.participatedPeriods}/{student.participationEligiblePeriods}</strong></td><td>{student.lastActionAt ? new Date(student.lastActionAt).toLocaleString() : "No action in range"}</td><td>{student.positives}</td><td>{student.redirects}</td></tr>)}</tbody></table></section><Attendance report={report} students={students} snapshot={snapshot} classId={classId} onRefresh={onRefresh}/></>;
-}
-
-function Attendance({ report, students, snapshot, classId, onRefresh }: { report: ClassReport; students: ReportStudent[]; snapshot: Snapshot; classId: string; onRefresh: () => Promise<void> }) {
-  const [message, setMessage] = useState("");
-  const attendance = useMemo(() => new Map(snapshot.attendance.map((item) => [`${item.periodId}\0${item.studentId}`, item.status])), [snapshot.attendance]);
-  const update = async (period: Period, student: ReportStudent, status: "present" | "absent") => {
-    if (period.status !== "live") { setMessage(`Reopen “${period.label}” before correcting attendance.`); return; }
-    try { setMessage(""); await dataStore.markAttendance(classId, period.id, student.studentId, status); await onRefresh(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Attendance could not be updated. Reopen the class day and try again."); }
-  };
-  const reopen = async (period: Period) => {
-    const live = snapshot.periods.find((item) => item.status === "live" && item.id !== period.id);
-    if (live && !confirm(`Reopening “${period.label}” will close the current class day “${live.label}”. Continue?`)) return;
-    try { setMessage(""); await dataStore.mutate(classId, `/classes/${classId}/periods/${period.id}/reopen`, "POST"); await dataStore.sync(); await onRefresh(); } catch (error) { setMessage(error instanceof Error ? error.message : "The class day could not be reopened."); }
-  };
-  return <><p className="report-note">P = present, A = absent, dash = not enrolled. Closed class days must be reopened before correction.</p>{message && <p className="form-error" role="alert">{message}</p>}<section className="matrix-wrap card"><table className="attendance-register"><caption>Attendance register for selected class days</caption><thead><tr><th scope="col">Learner</th>{report.periods.map((period) => <th scope="col" key={period.id}><span>{period.label}</span><small>{period.status === "closed" ? <button className="text-button" onClick={() => void reopen(period)}>Reopen to edit</button> : "Open for editing"}</small></th>)}<th scope="col">Present</th><th scope="col">Absent</th></tr></thead><tbody>{students.map((student) => { let present = 0; let absent = 0; return <tr key={student.studentId}><th scope="row">{student.displayName}</th>{report.periods.map((period) => { const enrolled = period.startedAt >= student.enrolledAt && (!student.archivedAt || period.startedAt <= student.archivedAt); const status = attendance.get(`${period.id}\0${student.studentId}`) ?? "present"; if (enrolled) status === "present" ? present++ : absent++; return <td key={period.id}>{enrolled ? <button className={`attendance-cell ${status}`} aria-label={`${student.displayName}, ${period.label}: ${status}. ${period.status === "live" ? "Activate to change." : "Reopen class day to edit."}`} onClick={() => void update(period, student, status === "present" ? "absent" : "present")}>{status === "present" ? "P" : "A"}</button> : <span className="not-enrolled" aria-label="Not enrolled">-</span>}</td>; })}<td>{present}</td><td>{absent}</td></tr>; })}</tbody></table></section></>;
+  return <section className="matrix-wrap card"><table className="report-table"><caption>Participation and attendance counts for every filtered learner</caption><thead><tr><th scope="col">Learner</th><th scope="col">Present</th><th scope="col">Absences</th><th scope="col">Eligible class days</th><th scope="col">Positive Action days</th><th scope="col">Last action</th><th scope="col">Positive Actions</th><th scope="col">Redirects</th></tr></thead><tbody>{ordered.map((student) => <tr key={student.studentId}><th scope="row"><button onClick={() => onSelect(student.studentId)}>{student.displayName}</button></th><td>{student.attendedClassDays}</td><td>{student.absences}</td><td>{student.participationEligiblePeriods}</td><td><strong>{student.participatedPeriods}/{student.participationEligiblePeriods}</strong></td><td>{student.lastActionAt ? new Date(student.lastActionAt).toLocaleString() : "No action in range"}</td><td>{student.positives}</td><td>{student.redirects}</td></tr>)}</tbody></table></section>;
 }
 
 function Skills({ report, students }: { report: ClassReport; students: ReportStudent[] }) {
