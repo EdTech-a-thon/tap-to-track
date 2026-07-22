@@ -45,11 +45,9 @@ export function Today() {
     previousClassId.current = classId;
     if (!switchedClass || !classId) return;
 
-    void dataStore.getSnapshot(classId, true).then((snapshot) => {
-      const period = snapshot.periods.find((item) => item.status === "live");
-      if (!period) return;
-      setSnapshot(snapshot);
-      setWorkspace({ classId, periodId: period.id });
+    void dataStore.getCalendar(day, day).then((today) => {
+      const item = todayClasses(today.classes, today.periods).find((candidate) => candidate.classRoom.id === classId);
+      if (item) void open(item);
     }).catch((error) => setError(error instanceof Error ? error.message : "That class could not be opened."));
   }, [classId, setError, setSnapshot]);
 
