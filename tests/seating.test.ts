@@ -24,6 +24,23 @@ describe("seating geometry", () => {
     expect(defaultSeatPositions(count)).toHaveLength(count);
   });
 
+  it.each([
+    [1, 1100, 500],
+    [35, 1100, 500],
+    [40, 390, 600],
+    [100, 1024, 500],
+  ])("keeps every fitted seat inside a %ix%i map for %i learners", (count, viewportWidth, viewportHeight) => {
+    const positions = defaultSeatPositions(count, viewportWidth, viewportHeight);
+    const bounds = seatBounds(positions);
+    const padding = 24;
+    const transform = fitSeats(bounds, viewportWidth, viewportHeight, padding);
+
+    expect(transform.translateY + bounds.minY * transform.scale).toBeGreaterThanOrEqual(padding - 0.001);
+    expect(transform.translateY + (bounds.minY + bounds.height) * transform.scale).toBeLessThanOrEqual(viewportHeight - padding + 0.001);
+    expect(transform.translateX + bounds.minX * transform.scale).toBeGreaterThanOrEqual(padding - 0.001);
+    expect(transform.translateX + (bounds.minX + bounds.width) * transform.scale).toBeLessThanOrEqual(viewportWidth - padding + 0.001);
+  });
+
   it("includes the complete card dimensions in room bounds", () => {
     const bounds = seatBounds([{ x: 100, y: 200 }]);
     expect(bounds).toEqual({
