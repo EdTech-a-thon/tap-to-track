@@ -6,7 +6,8 @@ import type { Achievement, AllClassProgressRow, ClassReport, ClassSnapshot, Pare
 
 type ReportTab = "insights" | "participation" | "skills";
 type Range = "last5" | "last10" | "week" | "all" | "custom";
-type Sort = "name" | "participation" | "absences";
+type InsightSort = "name" | "participation" | "lastAction";
+type SortDirection = "ascending" | "descending";
 type Snapshot = NonNullable<ClassSnapshot>;
 
 export function Progress() {
@@ -94,22 +95,33 @@ function AllClasses() {
 }
 
 function Insights({ report, students, onSelect }: { report: ClassReport; students: ReportStudent[]; onSelect: (id: string) => void }) {
-  const [sort, setSort] = useState<Sort>("name");
-  const rows = useMemo(() => [...students]
-    .sort((a, b) => sort === "name" ? a.displayName.localeCompare(b.displayName)
-      : sort === "participation" ? a.participatedPeriods - b.participatedPeriods
-      : b.absences - a.absences), [sort, students]);
+  const [sort, setSort] = useState<InsightSort>("name");
+  const [direction, setDirection] = useState<SortDirection>("ascending");
+  const changeSort = (nextSort: InsightSort) => {
+    if (nextSort === sort) setDirection(direction === "ascending" ? "descending" : "ascending");
+    else { setSort(nextSort); setDirection(nextSort === "name" ? "ascending" : "descending"); }
+  };
+  const rows = useMemo(() => [...students].sort((a, b) => {
+    const result = sort === "name" ? a.displayName.localeCompare(b.displayName)
+      : sort === "participation" ? a.participatedPeriods - b.participatedPeriods || a.participationEligiblePeriods - b.participationEligiblePeriods
+      : (a.lastActionAt ? Date.parse(a.lastActionAt) : 0) - (b.lastActionAt ? Date.parse(b.lastActionAt) : 0);
+    return direction === "ascending" ? result : -result;
+  }), [direction, sort, students]);
   const leafSkills = report.skills.filter((skill) => !skill.isParent);
   const supportSkills = [...leafSkills].sort((a, b) => (b.supportCount ?? 0) - (a.supportCount ?? 0)).filter((skill) => (skill.supportCount ?? 0) > 0);
   return <>
-    <section className="insight-actions card"><div><p className="eyebrow">LEARNER EVIDENCE</p><h2>Full learner roster</h2></div><div className="insight-controls"><label>Sort<select value={sort} onChange={(event) => setSort(event.target.value as Sort)}><option value="name">Learner name</option><option value="participation">Fewest Positive Action days</option><option value="absences">Most absences</option></select></label></div></section>
-    <section className="matrix-wrap card"><table className="report-table insight-roster"><caption>Learner evidence for the selected class days</caption><thead><tr><th scope="col">Learner</th><th scope="col">Positive Action days</th><th scope="col">Last action</th><th scope="col">Skills requiring support</th></tr></thead><tbody>{rows.map((student) => { const supportSkills = report.skills.filter((skill) => !skill.isParent && skill.achievements?.some((item) => item.studentId === student.studentId && item.requiresSupport)).map((skill) => skill.label); return <tr key={student.studentId}><th scope="row"><button onClick={() => onSelect(student.studentId)}>{student.displayName}</button></th><td><strong>{student.participatedPeriods}/{student.participationEligiblePeriods}</strong></td><td>{student.lastActionAt ? new Date(student.lastActionAt).toLocaleString() : "No action in range"}</td><td className="support-skills-cell">{supportSkills.length ? supportSkills.join(", ") : "None"}</td></tr>; })}</tbody></table>{rows.length === 0 && <p className="empty-report">No learners match these filters.</p>}</section>
+    <section className="insight-actions card"><div><p className="eyebrow">LEARNER EVIDENCE</p><h2>Full learner roster</h2></div><p className="report-note">Select a column heading to sort.</p></section>
+    <section className="matrix-wrap card"><table className="report-table insight-roster"><caption>Learner evidence for the selected class days</caption><thead><tr><SortableHeader label="Learner" active={sort === "name"} direction={direction} onClick={() => changeSort("name")}/><SortableHeader label="Positive Action days" active={sort === "participation"} direction={direction} onClick={() => changeSort("participation")}/><SortableHeader label="Last action" active={sort === "lastAction"} direction={direction} onClick={() => changeSort("lastAction")}/><th scope="col">Skills requiring support</th></tr></thead><tbody>{rows.map((student) => { const supportSkills = report.skills.filter((skill) => !skill.isParent && skill.achievements?.some((item) => item.studentId === student.studentId && item.requiresSupport)).map((skill) => skill.label); return <tr key={student.studentId}><th scope="row"><button onClick={() => onSelect(student.studentId)}>{student.displayName}</button></th><td><strong>{student.participatedPeriods}/{student.participationEligiblePeriods}</strong></td><td>{student.lastActionAt ? new Date(student.lastActionAt).toLocaleString() : "No action in range"}</td><td className="support-skills-cell">{supportSkills.length ? supportSkills.join(", ") : "None"}</td></tr>; })}</tbody></table>{rows.length === 0 && <p className="empty-report">No learners match these filters.</p>}</section>
     <div className="optional-insights">
       <details className="card report-section"><summary>Absence counts</summary><p><strong>{students.reduce((sum, student) => sum + student.absences, 0)}</strong> absences across the selected <strong>{report.periods.length}</strong> class day{report.periods.length === 1 ? "" : "s"}.</p>{students.filter((student) => student.absences > 0).map((student) => <p key={student.studentId}>{student.displayName}: {student.absences}/{student.enrolledPeriods} class days absent</p>)}</details>
       <details className="card report-section"><summary>Skills needing support</summary>{supportSkills.map((skill) => <p key={skill.id}><strong>{skill.label}</strong>: ◆ {skill.supportCount} learners</p>)}{supportSkills.length === 0 && <p>No teacher support flags in this range.</p>}</details>
       <details className="card report-section"><summary>Recent changes</summary><p>{report.masteryEvents.length} achievement changes in the selected class-day range.</p>{achievementOptions.map((option) => <p key={option.value}>{option.symbol} {option.label}: {report.masteryEvents.filter((event) => event.achievement === option.value).length}</p>)}</details>
     </div>
   </>;
+}
+
+function SortableHeader({ label, active, direction, onClick }: { label: string; active: boolean; direction: SortDirection; onClick: () => void }) {
+  return <th scope="col" aria-sort={active ? direction : "none"}><button className="sortable-header" onClick={onClick}>{label}<span aria-hidden="true">{active ? direction === "ascending" ? " ▲" : " ▼" : " ↕"}</span></button></th>;
 }
 
 function Participation({ report, students, snapshot, classId, onRefresh, onSelect }: { report: ClassReport; students: ReportStudent[]; snapshot: Snapshot; classId: string; onRefresh: () => Promise<void>; onSelect: (id: string) => void }) {

@@ -3438,6 +3438,18 @@ textarea {
   background: none;
   font-weight: 800;
 }
+.report-table th .sortable-header {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.sortable-header span {
+  color: var(--muted);
+  font-size: 0.72em;
+}
 .report-status {
   display: inline-block;
   border-radius: 20px;
