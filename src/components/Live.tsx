@@ -15,7 +15,7 @@ import {
   type RosterFilter,
 } from "../roster";
 import { useApp } from "../state";
-import { centerSeats, clampSeat, defaultSeatPositions, fitSeats, logicalRoomForZoom, screenToSeat, seatBounds, SEAT_CARD_HEIGHT, SEAT_CARD_WIDTH, unionSeatBounds } from "../seating";
+import { centerSeats, clampSeat, defaultSeatPositions, fitSeats, screenToSeat, seatBounds, SEAT_CARD_HEIGHT, SEAT_CARD_WIDTH, unionSeatBounds } from "../seating";
 import { topLevelSkills, type Achievement, type Lens, type PeriodType, type Student } from "../types";
 import { StudentGrid, StudentTile } from "./StudentGrid";
 
@@ -62,6 +62,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [mapScale, setMapScale] = useState(1);
   const [fitMap, setFitMap] = useState(true);
+  const [zoomFromStorage, setZoomFromStorage] = useState(false);
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [finishAttendanceWarning, setFinishAttendanceWarning] = useState(false);
   const [reopenWarning, setReopenWarning] = useState(false);
@@ -91,6 +92,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     const saved = snapshot ? readSavedZoom(snapshot.classRoom.id) : null;
     setMapScale(saved ?? 1);
     setFitMap(saved === null);
+    setZoomFromStorage(saved !== null);
     const savedDensity = snapshot
       ? localStorage.getItem(`roster-density:${snapshot.classRoom.id}`)
       : null;
@@ -114,11 +116,6 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     const viewport = mapViewportRef.current;
     if (!mapMode || !viewport) return;
     const measure = () => {
-      if (!mapFullscreen) {
-        const browserHeight = window.visualViewport?.height ?? window.innerHeight;
-        const availableHeight = Math.max(180, browserHeight - viewport.getBoundingClientRect().top - 12);
-        viewport.style.height = `${Math.min(500, availableHeight)}px`;
-      }
       setMapViewportSize({ width: viewport.clientWidth, height: viewport.clientHeight });
     };
     measure();
@@ -264,31 +261,32 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     x: student.x ?? defaultPositions[index].x,
     y: student.y ?? defaultPositions[index].y,
   }));
-  const mapBounds = seatBounds(mapPositions);
+  const rawMapBounds = seatBounds(mapPositions);
+  // Saved coordinates may have been created by older seating views with a
+  // negative origin. Normalize the view bounds so Fit does not reserve an
+  // invisible area above or left of the classroom.
+  const mapBounds = {
+    minX: Math.max(0, rawMapBounds.minX),
+    minY: Math.max(0, rawMapBounds.minY),
+    width: rawMapBounds.width + Math.max(0, -rawMapBounds.minX),
+    height: rawMapBounds.height + Math.max(0, -rawMapBounds.minY),
+  };
   // Leave room for card borders and the map controls so fitted names never clip at the frame edge.
   const fittedBaseMap = fitSeats(mapBounds, mapViewportSize.width, mapViewportSize.height, mapFullscreen ? 32 : 24);
-  const effectiveScale = fitMap
+const effectiveScale = fitMap
     ? fittedBaseMap.scale
-    : Math.min(mapScale, fittedBaseMap.scale);
+    : zoomFromStorage
+      ? Math.min(mapScale, fittedBaseMap.scale)
+      : mapScale;
+  const arrangeRoom = seatBounds(defaultPositions);
   const logicalBounds = arranging
-    ? unionSeatBounds(logicalRoomForZoom(mapViewportSize.width, mapViewportSize.height, effectiveScale), mapBounds)
+    ? unionSeatBounds(arrangeRoom, mapBounds)
     : mapBounds;
   const roomWidth = Math.max(logicalBounds.width, SEAT_CARD_WIDTH + 56);
   const roomHeight = Math.max(logicalBounds.height, SEAT_CARD_HEIGHT + 56);
   const mapTransform = fitMap
     ? fittedBaseMap
     : centerSeats(logicalBounds, mapViewportSize.width, mapViewportSize.height, effectiveScale);
-  if (mapMode) console.log(JSON.stringify({
-    fitMap,
-    mapScale,
-    effectiveScale,
-    vp: mapViewportSize,
-    bounds: mapBounds,
-    logical: logicalBounds,
-    room: [roomWidth, roomHeight],
-    t: mapTransform,
-    arranging,
-  }));
 
   const scrollToStudent = (studentId: string) => {
     setHighlightedStudentId(studentId);
@@ -425,8 +423,10 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
       if (saved !== null) {
         setMapScale(saved);
         setFitMap(false);
+        setZoomFromStorage(true);
       } else {
         setFitMap(true);
+        setZoomFromStorage(false);   // ← add
       }
     }
     void save(async () =>
@@ -442,6 +442,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
   };
   const setMapZoom = (next: number) => {
     setFitMap(false);
+    setZoomFromStorage(false);
     const scale = Math.min(1.5, Math.max(0.05, next));
     setMapScale(scale);
     localStorage.setItem(`seating-zoom:${snapshot.classRoom.id}`, String(scale));
@@ -457,6 +458,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     if (next) {
       setMapScale(effectiveScale);
       setFitMap(false);
+      setZoomFromStorage(false);
     } else {
       fitAllSeats();
     }

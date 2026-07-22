@@ -3878,6 +3878,9 @@ textarea {
 }
 
 @media (max-width: 800px) {
+  .live-workspace.map-is-active {
+    --chrome-offset: 116px;
+  }
   .roster-heading,
   .roster-controls {
     align-items: stretch;
@@ -4248,6 +4251,9 @@ textarea {
 }
 
 @media (min-width: 801px) and (max-width: 1180px) and (orientation: landscape) {
+  .live-workspace.map-is-active {
+    --chrome-offset: 116px;
+  }
   .page {
     padding: 0.75rem;
   }
@@ -4379,10 +4385,6 @@ textarea {
   }
   .participation-actions button {
     min-height: 58px;
-  }
-  .student-map-viewport {
-    height: min(500px, calc(100dvh - 235px));
-    min-height: 0;
   }
   .seating-action-tray {
     grid-template-columns: 1fr 1fr;
