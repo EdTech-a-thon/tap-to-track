@@ -261,16 +261,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     x: student.x ?? defaultPositions[index].x,
     y: student.y ?? defaultPositions[index].y,
   }));
-  const rawMapBounds = seatBounds(mapPositions);
-  // Saved coordinates may have been created by older seating views with a
-  // negative origin. Normalize the view bounds so Fit does not reserve an
-  // invisible area above or left of the classroom.
-  const mapBounds = {
-    minX: Math.max(0, rawMapBounds.minX),
-    minY: Math.max(0, rawMapBounds.minY),
-    width: rawMapBounds.width + Math.max(0, -rawMapBounds.minX),
-    height: rawMapBounds.height + Math.max(0, -rawMapBounds.minY),
-  };
+  const mapBounds = seatBounds(mapPositions);
   // Leave room for card borders and the map controls so fitted names never clip at the frame edge.
   const fittedBaseMap = fitSeats(mapBounds, mapViewportSize.width, mapViewportSize.height, mapFullscreen ? 32 : 24);
 const effectiveScale = fitMap
@@ -278,7 +269,7 @@ const effectiveScale = fitMap
     : zoomFromStorage
       ? Math.min(mapScale, fittedBaseMap.scale)
       : mapScale;
-  const arrangeRoom = seatBounds(defaultPositions);
+  const arrangeRoom = seatBounds(defaultSeatPositions(activeStudents.length, mapViewportSize.width, mapViewportSize.height));
   const logicalBounds = arranging
     ? unionSeatBounds(arrangeRoom, mapBounds)
     : mapBounds;
@@ -458,7 +449,7 @@ const effectiveScale = fitMap
     if (next) {
       setMapScale(effectiveScale);
       setFitMap(false);
-      setZoomFromStorage(false);
+      setZoomFromStorage(false); 
     } else {
       fitAllSeats();
     }
