@@ -45,9 +45,9 @@ function saveSeatingView(classId: string, orientation: SeatingOrientation, view:
   localStorage.setItem(`seating-view:${classId}:${orientation}`, JSON.stringify(view));
 }
 
-export function Live({ initialPeriodId = "", initialAttendance = false, onBack }: { initialPeriodId?: string; initialAttendance?: boolean; onBack?: () => void }) {
+export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: string; onBack?: () => void }) {
   const { snapshot, lens, setLens, setSnapshot, setError } = useApp();
-  const [attendanceMode, setAttendanceMode] = useState(initialAttendance);
+  const [attendanceMode, setAttendanceMode] = useState(false);
   const [mapMode, setMapMode] = useState(
     snapshot?.classRoom.settings.layout === "map",
   );
@@ -96,7 +96,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
   useEffect(() => {
     const openSeating = sessionStorage.getItem("open-seating-arrange") === snapshot?.classRoom.id;
     if (openSeating) sessionStorage.removeItem("open-seating-arrange");
-    setAttendanceMode(initialAttendance);
+    setAttendanceMode(false);
     setSkillId("");
     setSkillStudentId("");
     setAssessmentStudentId("");
@@ -122,7 +122,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
         ? savedDensity
         : rosterDensity(snapshot?.students.filter((student) => !student.archived).length ?? 0, matchMedia("(orientation: landscape)").matches),
     );
-  }, [snapshot?.classRoom.id, initialAttendance, initialPeriodId]);
+  }, [snapshot?.classRoom.id, initialPeriodId]);
   useEffect(() => {
     const classId = snapshot?.classRoom.id;
     if (!classId) return;
@@ -947,7 +947,9 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
                           ? updateAttendance(student)
                           : lens === "skills"
                             ? handleSkillTap(student)
-                            : undefined
+                            : mapMode && !cardActionsVisible
+                              ? setActionStudentId(student.id)
+                              : undefined
                   }
                   onPositive={() => participate(student, 1)}
                   onNegative={() => participate(student, -1)}

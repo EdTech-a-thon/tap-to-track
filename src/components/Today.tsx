@@ -7,7 +7,7 @@ import { Live } from "./Live";
 import { takeTodayNavigationIntent } from "../navigation";
 
 type CalendarData = Awaited<ReturnType<typeof dataStore.getCalendar>>;
-type Workspace = { classId: string; periodId: string; attendance: boolean };
+type Workspace = { classId: string; periodId: string };
 
 const activityTypes: { type: PeriodType; title: string; description: string }[] = [
   { type: "instructional", title: "Instructional", description: "Discussion and guided learning. Participation tracking is on." },
@@ -33,7 +33,7 @@ export function Today() {
       const period = snapshot.periods.find((item) => item.id === intent.periodId);
       if (!period) throw new Error("That class day could not be found.");
       setSnapshot(snapshot);
-      setWorkspace({ classId: intent.classId, periodId: period.id, attendance: period.status === "live" && !period.attendanceCompletedAt });
+      setWorkspace({ classId: intent.classId, periodId: period.id });
     }).catch((error) => setError(error instanceof Error ? error.message : "That class day could not be opened."));
   }, [classId]);
   useEffect(() => {
@@ -51,7 +51,6 @@ export function Today() {
       setWorkspace({
         classId: item.classRoom.id,
         periodId: period.id,
-        attendance: period.status === "live" && !period.attendanceCompletedAt,
       });
     } catch (error) {
       setError(error instanceof Error ? error.message : "That class day could not be opened.");
@@ -86,7 +85,7 @@ export function Today() {
         : snapshot.periods.find((candidate) => candidate.status === "live");
       if (!period) throw new Error("Today's class day could not be found.");
       setStarting(undefined);
-      setWorkspace({ classId: room.id, periodId: period.id, attendance: !period.attendanceCompletedAt });
+      setWorkspace({ classId: room.id, periodId: period.id });
       await load();
     } catch (error) {
       setError(error instanceof Error ? error.message : "That class day could not be started.");
@@ -96,7 +95,7 @@ export function Today() {
   };
 
   if (workspace) {
-    return <Live initialPeriodId={workspace.periodId} initialAttendance={workspace.attendance} onBack={() => { setWorkspace(undefined); void load(); }} />;
+    return <Live initialPeriodId={workspace.periodId} onBack={() => { setWorkspace(undefined); void load(); }} />;
   }
 
   const items = calendar ? todayClasses(calendar.classes, calendar.periods) : [];
