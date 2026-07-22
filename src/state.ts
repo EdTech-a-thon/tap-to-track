@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { ClassRoom, ClassSnapshot, Lens } from "./types";
+import {
+  normalizeClassSnapshot,
+  type ClassRoom,
+  type ClassSnapshot,
+  type Lens,
+} from "./types";
 import { teacherView, type TeacherView } from "./navigation";
 
 type AppState = {
@@ -28,7 +33,10 @@ export const useApp = create<AppState>((set) => ({
   error: "",
   setClasses: (classes) => set({ classes }),
   setSnapshot: (snapshot) =>
-    set({ snapshot, lens: snapshot.classRoom.activeLens }),
+    set({
+      snapshot: normalizeClassSnapshot(snapshot),
+      lens: snapshot.classRoom.activeLens,
+    }),
   setClassId: (classId) => {
     localStorage.setItem("tap-class", classId);
     set({ classId, snapshot: undefined });

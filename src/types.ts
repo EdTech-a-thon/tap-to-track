@@ -193,6 +193,16 @@ export interface ClassSnapshot {
   groupAssignments: GroupAssignment[];
 }
 
+export function normalizeClassSnapshot(snapshot: ClassSnapshot): ClassSnapshot {
+  return {
+    ...snapshot,
+    groups: Array.isArray(snapshot.groups) ? snapshot.groups : [],
+    groupAssignments: Array.isArray(snapshot.groupAssignments)
+      ? snapshot.groupAssignments
+      : [],
+  };
+}
+
 export interface ReportStudent {
   studentId: string;
   displayName: string;

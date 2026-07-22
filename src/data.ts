@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import { normalizeClassSnapshot } from "./types";
 import type {
   AttendanceStatus,
   ClassReport,
@@ -236,7 +237,7 @@ class BrowserDataStore implements DataStore {
     const cached = await db.snapshots.get(classId);
     if (cached && !refresh) {
       void this.reconcile(classId);
-      return cached.value;
+      return normalizeClassSnapshot(cached.value);
     }
     return this.reconcile(classId);
   }
@@ -526,7 +527,7 @@ class BrowserDataStore implements DataStore {
     if (existing) return existing;
     const reconcile = (async () => {
       await this.sync();
-      const authoritative = await request<ClassSnapshot>(`/classes/${classId}/snapshot`);
+       const authoritative = normalizeClassSnapshot(await request<ClassSnapshot>(`/classes/${classId}/snapshot`));
       const changes = await db.outbox.orderBy("createdAt").toArray();
       const value = reconcileOptimisticSnapshot(authoritative, changes, classId);
       await db.snapshots.put({ classId, value, updatedAt: Date.now() });
@@ -540,7 +541,7 @@ class BrowserDataStore implements DataStore {
   private async refreshAuthoritativeSnapshot(path: string) {
     const classId = classIdFromPath(path);
     if (!classId) return;
-    const authoritative = await request<ClassSnapshot>(`/classes/${classId}/snapshot`);
+     const authoritative = normalizeClassSnapshot(await request<ClassSnapshot>(`/classes/${classId}/snapshot`));
     const changes = await db.outbox.orderBy("createdAt").toArray();
     const value = reconcileOptimisticSnapshot(authoritative, changes, classId);
     await db.snapshots.put({ classId, value, updatedAt: Date.now() });
@@ -628,7 +629,7 @@ export function applyOptimisticChange(
   method: string,
   raw: unknown,
 ): ClassSnapshot {
-  const next = structuredClone(snapshot);
+  const next = structuredClone(normalizeClassSnapshot(snapshot));
   const body = (raw ?? {}) as Record<string, unknown>;
   const now = new Date().toISOString();
   if (path.includes("/attendance/")) {
