@@ -19,6 +19,32 @@ import { centerSeats, clampSeat, defaultSeatPositions, fitSeats, logicalRoomForZ
 import { topLevelSkills, type Achievement, type Lens, type PeriodType, type Student } from "../types";
 import { StudentGrid, StudentTile } from "./StudentGrid";
 
+type SeatingOrientation = "landscape" | "portrait";
+type SeatingView = { scale: number; fit: boolean };
+
+const seatingOrientation = (): SeatingOrientation =>
+  matchMedia("(orientation: landscape)").matches ? "landscape" : "portrait";
+
+function savedSeatingView(classId: string, orientation: SeatingOrientation): SeatingView {
+  try {
+    const saved = JSON.parse(localStorage.getItem(`seating-view:${classId}:${orientation}`) ?? "") as Partial<SeatingView>;
+    if (typeof saved.fit === "boolean" && Number.isFinite(saved.scale) && saved.scale >= 0.05 && saved.scale <= 1.5) {
+      return { fit: saved.fit, scale: saved.scale };
+    }
+  } catch {
+    // A malformed saved view should fall back to the default fitted view.
+  }
+  const legacyScale = Number(localStorage.getItem(`seating-zoom:${classId}`));
+  if (Number.isFinite(legacyScale) && legacyScale >= 0.05 && legacyScale <= 1.5) {
+    return { fit: false, scale: legacyScale };
+  }
+  return { fit: true, scale: 1 };
+}
+
+function saveSeatingView(classId: string, orientation: SeatingOrientation, view: SeatingView) {
+  localStorage.setItem(`seating-view:${classId}:${orientation}`, JSON.stringify(view));
+}
+
 export function Live({ initialPeriodId = "", initialAttendance = false, onBack }: { initialPeriodId?: string; initialAttendance?: boolean; onBack?: () => void }) {
   const { snapshot, lens, setLens, setSnapshot, setError } = useApp();
   const [attendanceMode, setAttendanceMode] = useState(initialAttendance);
@@ -57,6 +83,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [mapScale, setMapScale] = useState(1);
   const [fitMap, setFitMap] = useState(true);
+  const [mapOrientation, setMapOrientation] = useState<SeatingOrientation>(seatingOrientation);
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [finishAttendanceWarning, setFinishAttendanceWarning] = useState(false);
   const [reopenWarning, setReopenWarning] = useState(false);
@@ -83,10 +110,11 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     setHighlightedStudentId("");
     setActionStudentId("");
     setMapMode(openSeating || snapshot?.classRoom.settings.layout === "map");
-    const savedScale = snapshot ? Number(localStorage.getItem(`seating-zoom:${snapshot.classRoom.id}`)) : NaN;
-    const hasSavedScale = Number.isFinite(savedScale) && savedScale >= 0.05 && savedScale <= 1.5;
-    setMapScale(hasSavedScale ? savedScale : 1);
-    setFitMap(!hasSavedScale);
+    const orientation = seatingOrientation();
+    const savedView = snapshot ? savedSeatingView(snapshot.classRoom.id, orientation) : { fit: true, scale: 1 };
+    setMapOrientation(orientation);
+    setMapScale(savedView.scale);
+    setFitMap(savedView.fit);
     const savedDensity = snapshot
       ? localStorage.getItem(`roster-density:${snapshot.classRoom.id}`)
       : null;
@@ -96,6 +124,23 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
         : rosterDensity(snapshot?.students.filter((student) => !student.archived).length ?? 0, matchMedia("(orientation: landscape)").matches),
     );
   }, [snapshot?.classRoom.id, initialAttendance, initialPeriodId]);
+  useEffect(() => {
+    if (!snapshot) return;
+    const restoreOrientationView = () => {
+      const orientation = seatingOrientation();
+      setMapOrientation(orientation);
+      const savedView = savedSeatingView(snapshot.classRoom.id, orientation);
+      setMapScale(savedView.scale);
+      setFitMap(savedView.fit);
+    };
+    const orientationQuery = matchMedia("(orientation: landscape)");
+    orientationQuery.addEventListener("change", restoreOrientationView);
+    window.addEventListener("orientationchange", restoreOrientationView);
+    return () => {
+      orientationQuery.removeEventListener("change", restoreOrientationView);
+      window.removeEventListener("orientationchange", restoreOrientationView);
+    };
+  }, [snapshot?.classRoom.id]);
   useEffect(() => {
     const updateBackToTop = () => setShowBackToTop(scrollY > 700);
     updateBackToTop();
@@ -404,13 +449,9 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     const next = !mapMode;
     setMapMode(next);
     if (next) {
-      const savedScale = Number(localStorage.getItem(`seating-zoom:${snapshot.classRoom.id}`));
-      if (Number.isFinite(savedScale) && savedScale >= 0.05 && savedScale <= 1.5) {
-        setMapScale(savedScale);
-        setFitMap(false);
-      } else {
-        setFitMap(true);
-      }
+      const savedView = savedSeatingView(snapshot.classRoom.id, mapOrientation);
+      setMapScale(savedView.scale);
+      setFitMap(savedView.fit);
     }
     void save(async () =>
       setSnapshot(
@@ -424,13 +465,14 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     );
   };
   const setMapZoom = (next: number) => {
-    setFitMap(false);
     const scale = Math.min(1.5, Math.max(0.05, next));
+    setFitMap(false);
     setMapScale(scale);
-    localStorage.setItem(`seating-zoom:${snapshot.classRoom.id}`, String(scale));
+    saveSeatingView(snapshot.classRoom.id, mapOrientation, { fit: false, scale });
   };
   const fitAllSeats = () => {
     setFitMap(true);
+    saveSeatingView(snapshot.classRoom.id, mapOrientation, { fit: true, scale: effectiveScale });
   };
   const setArrangeMode = (next: boolean) => {
     setArranging(next);
