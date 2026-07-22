@@ -193,7 +193,10 @@ export function StudentApp({ code }: { code: string }) {
     );
     await refresh();
   };
-  const assignedGroup = view.groups.find((group) => group.id === view.groupAssignment?.groupId);
+  // A temporary network response can omit optional classroom features. Treat a
+  // missing groups list as no groups rather than breaking the student screen.
+  const groups = Array.isArray(view.groups) ? view.groups : [];
+  const assignedGroup = groups.find((group) => group.id === view.groupAssignment?.groupId);
 
   return (
     <main className="student-shell">
@@ -272,10 +275,10 @@ export function StudentApp({ code }: { code: string }) {
           <div className="student-groups">
             <p className="eyebrow">WORKING GROUPS</p>
             <h2>Choose your group</h2>
-            {view.groups.length ? <>
+            {groups.length ? <>
               <p className="group-intro">Pick the group your teacher asked you to join. You can change your choice if your teacher reorganizes the class.</p>
               {assignedGroup && <div className="group-status-card" style={{ borderColor: assignedGroup.color }}><span style={{ background: assignedGroup.color }} /><strong>You are in {assignedGroup.label}</strong><button className="text-button" onClick={async () => { await dataStore.studentAction("/groups", "DELETE"); await refresh(); }}>Leave group</button></div>}
-              <div className="group-choices">{view.groups.map((group) => <button key={group.id} className={group.id === assignedGroup?.id ? "selected" : ""} style={{ borderColor: group.color }} onClick={async () => { await dataStore.studentAction(`/groups/${group.id}`, "PUT"); await refresh(); }}><span style={{ background: group.color }} />{group.label}{group.id === assignedGroup?.id && <small>Your group</small>}</button>)}</div>
+              <div className="group-choices">{groups.map((group) => <button key={group.id} className={group.id === assignedGroup?.id ? "selected" : ""} style={{ borderColor: group.color }} onClick={async () => { await dataStore.studentAction(`/groups/${group.id}`, "PUT"); await refresh(); }}><span style={{ background: group.color }} />{group.label}{group.id === assignedGroup?.id && <small>Your group</small>}</button>)}</div>
             </> : <div className="card group-empty"><h3>No groups yet</h3><p>Your teacher has not set up groups for this class.</p></div>}
           </div>
         )}
