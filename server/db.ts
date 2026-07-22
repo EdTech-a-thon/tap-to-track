@@ -260,6 +260,9 @@ export function createDatabase(path = process.env.DB_PATH || "data/tap-to-track.
       CREATE INDEX idx_class_timers_owner ON class_timers(teacherId, classId, periodId);
     `);
   });
+  migrate(12, () => {
+    addColumn("mastery_events", "note", "TEXT");
+  });
   db.exec("DROP TABLE IF EXISTS request_status");
   db.exec(`
     INSERT OR IGNORE INTO attendance (teacherId, classId, periodId, studentId, status)

@@ -118,7 +118,7 @@ export interface DataStore {
     classId: string,
     studentId: string,
     skillId: string,
-    update: { achievement?: Achievement; requiresSupport?: boolean },
+    update: { achievement?: Achievement; requiresSupport?: boolean; note?: string },
     assessedAt: string,
     periodId?: string,
   ): Promise<ClassSnapshot>;
@@ -341,7 +341,7 @@ class BrowserDataStore implements DataStore {
     classId: string,
     studentId: string,
     skillId: string,
-    update: { achievement?: Achievement; requiresSupport?: boolean },
+    update: { achievement?: Achievement; requiresSupport?: boolean; note?: string },
     assessedAt: string,
     periodId?: string,
   ) {

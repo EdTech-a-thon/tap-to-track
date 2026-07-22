@@ -2325,6 +2325,8 @@ textarea {
 .bulk-assign-controls span { color: #536b78; font-size: .76rem; font-weight: 700; }
 .bulk-assign-controls label { display: flex; align-items: center; gap: .35rem; font-weight: 800; }
 .bulk-assign-controls select { min-height: 44px; border: 1px solid #7995a8; border-radius: 9px; background: white; padding: 0 .45rem; }
+.bulk-note { display: grid; gap: .25rem; width: 100%; font-size: .8rem; font-weight: 800; }
+.bulk-note textarea, .assessment-note textarea { width: 100%; resize: vertical; border: 1px solid #7995a8; border-radius: 8px; padding: .45rem; font: inherit; }
 .bulk-assignment-result { justify-content: space-between; color: #174f3b; border-color: #8abca0; background: #e3f2e8; font-size: .82rem; font-weight: 700; }
 .student-tile.is-selected {
   border: 4px double #204f70;
@@ -2440,6 +2442,9 @@ textarea {
   min-height: 0;
   accent-color: #6b561a;
 }
+.assessment-note-toggle { min-height: 44px; justify-self: start; color: #355e50; border: 1px solid #b9c8c0; border-radius: 8px; background: white; padding: .35rem .6rem; font-weight: 800; }
+.assessment-note { display: grid; gap: .35rem; font-size: .78rem; font-weight: 800; color: #355e50; }
+.assessment-note .secondary { justify-self: start; min-height: 40px; }
 .category-heading {
   display: flex;
   align-items: center;

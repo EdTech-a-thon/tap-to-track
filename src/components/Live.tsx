@@ -59,6 +59,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkTarget, setBulkTarget] = useState<Achievement>("meets");
+  const [bulkNote, setBulkNote] = useState("");
   const [lastBulkAssignment, setLastBulkAssignment] = useState<{ skillId: string; learners: { studentId: string; achievement: Achievement; requiresSupport: boolean }[] }>();
   const [feedback, setFeedback] = useState<{
     studentId: string;
@@ -429,7 +430,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
       ),
     );
   };
-  const setAssessment = (student: Student, selectedSkillId: string, update: { achievement?: Achievement; requiresSupport?: boolean }) => {
+  const setAssessment = (student: Student, selectedSkillId: string, update: { achievement?: Achievement; requiresSupport?: boolean; note?: string }) => {
     if (!period || period.status !== "live") return;
     void save(async () =>
       setSnapshot(
@@ -468,6 +469,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
     dispatchRapid({ type: "exit" });
     setBulkMode(true);
     setBulkSelectedIds(new Set());
+    setBulkNote("");
     setLastBulkAssignment(undefined);
   };
   const applyBulkAssignment = () => {
@@ -475,15 +477,16 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
     const selectedStudents = activeStudents.filter((student) => bulkSelectedIds.has(student.id));
     const names = selectedStudents.map((student) => student.displayName);
     const learnerSummary = names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")}, and ${names.length - 2} others`;
-    if (!confirm(`Set ${selectedSkill?.label} to ${achievementDisplay(bulkTarget).label} for ${learnerSummary}? Support will not change.`)) return;
+    if (!confirm(`Set ${selectedSkill?.label} to ${achievementDisplay(bulkTarget).label} for ${learnerSummary}?${bulkNote.trim() ? " The shared note will be added to every learner." : ""} Support will not change.`)) return;
     const learners = selectedStudents.map((student) => {
       const current = masteryFor(student.id, skillId);
-      setAssessment(student, skillId, { achievement: bulkTarget });
+      setAssessment(student, skillId, { achievement: bulkTarget, note: bulkNote.trim() || undefined });
       return { studentId: student.id, achievement: current.achievement, requiresSupport: current.requiresSupport };
     });
     setLastBulkAssignment({ skillId, learners });
     setBulkSelectedIds(new Set());
     setBulkMode(false);
+    setBulkNote("");
   };
   const undoBulkAssignment = () => {
     if (!lastBulkAssignment) return;
@@ -782,7 +785,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
           )}
         </section>
        )}
-       {lens === "skills" && selectedSkill && !selectedIsParent && bulkMode && <section className="bulk-assign-controls" aria-label="Rapid assign selected learners"><div><strong>Assigning {selectedSkill.label}</strong><span>{bulkSelectedIds.size ? `${bulkSelectedIds.size} learner${bulkSelectedIds.size === 1 ? "" : "s"} selected` : "Tap learners to select them"}</span></div><label>Level<select value={bulkTarget} onChange={(event) => setBulkTarget(event.target.value as Achievement)}>{achievementOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><button className="primary" disabled={!bulkSelectedIds.size} onClick={applyBulkAssignment}>Assign {achievementDisplay(bulkTarget).label}</button></section>}
+       {lens === "skills" && selectedSkill && !selectedIsParent && bulkMode && <section className="bulk-assign-controls" aria-label="Rapid assign selected learners"><div><strong>Assigning {selectedSkill.label}</strong><span>{bulkSelectedIds.size ? `${bulkSelectedIds.size} learner${bulkSelectedIds.size === 1 ? "" : "s"} selected` : "Tap learners to select them"}</span></div><label>Level<select value={bulkTarget} onChange={(event) => setBulkTarget(event.target.value as Achievement)}>{achievementOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><label className="bulk-note">Shared note<textarea value={bulkNote} onChange={(event) => setBulkNote(event.target.value)} maxLength={500} rows={2} placeholder="Optional note for every selected learner" /></label><button className="primary" disabled={!bulkSelectedIds.size} onClick={applyBulkAssignment}>Assign {achievementDisplay(bulkTarget).label}</button></section>}
        {lastBulkAssignment && <section className="bulk-assignment-result" role="status"><span>{achievementDisplay(bulkTarget).label} assigned to {lastBulkAssignment.learners.length} learner{lastBulkAssignment.learners.length === 1 ? "" : "s"}. Support was unchanged.</span><button className="secondary" onClick={undoBulkAssignment}>Undo</button></section>}
       {attendanceMode && (
         <AttendancePanel
@@ -1020,6 +1023,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
                     requiresSupport={mastery!.requiresSupport}
                     onAchievement={(achievement) => setAssessment(student, skillId, { achievement })}
                     onSupport={(requiresSupport) => setAssessment(student, skillId, { requiresSupport })}
+                    onNote={(note) => setAssessment(student, skillId, { note })}
                   />
                 )}
               </div>
@@ -1586,8 +1590,10 @@ function LegacySkillChecklist({
   );
 }
 
-function AchievementSelector({ achievement, requiresSupport, onAchievement, onSupport }: { achievement: Achievement; requiresSupport: boolean; onAchievement: (achievement: Achievement) => void; onSupport: (requiresSupport: boolean) => void }) {
+function AchievementSelector({ achievement, requiresSupport, onAchievement, onSupport, onNote }: { achievement: Achievement; requiresSupport: boolean; onAchievement: (achievement: Achievement) => void; onSupport: (requiresSupport: boolean) => void; onNote?: (note: string) => void }) {
   const [selectedAchievement, setSelectedAchievement] = useState(achievement);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
   return (
     <div className="achievement-selector" aria-label="Achievement evidence">
       <div className="achievement-options">
@@ -1598,6 +1604,7 @@ function AchievementSelector({ achievement, requiresSupport, onAchievement, onSu
         ))}
       </div>
       <label className={`support-toggle ${requiresSupport ? "selected" : ""}`}><input type="checkbox" checked={requiresSupport} onChange={(event) => onSupport(event.target.checked)}/><span>◆ Requires support</span></label>
+      {onNote && <><button className="assessment-note-toggle" type="button" onClick={() => setNoteOpen((open) => !open)} aria-expanded={noteOpen}>{noteOpen ? "Hide note" : "Add note"}</button>{noteOpen && <label className="assessment-note">Assessment note<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} rows={2} placeholder="Optional observation or evidence" /><button type="button" className="secondary" disabled={!note.trim()} onClick={() => { onNote(note.trim()); setNote(""); setNoteOpen(false); }}>Save note</button></label>}</>}
     </div>
   );
 }

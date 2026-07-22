@@ -732,7 +732,8 @@ function registerSkills(app: FastifyInstance, db: AppDatabase, photoDir: string,
       if (!skill) return reply.code(404).send({ error: "Student or skill not found" });
       if (db.prepare("SELECT 1 FROM skills WHERE parentSkillId = ? AND classId = ? AND teacherId = ? LIMIT 1").get(skillId, classId, teacherId)) return reply.code(409).send({ error: "Parent mastery is calculated from its subskills" });
       const current = db.prepare("SELECT achievement, requiresSupport FROM mastery WHERE studentId = ? AND skillId = ? AND classId = ? AND teacherId = ?").get(studentId, skillId, classId, teacherId) as { achievement: string; requiresSupport: number } | undefined;
-      if (body.achievement === undefined && body.requiresSupport === undefined) throw new Error("Achievement or support must be provided");
+      const note = optionalText(body.note, "Assessment note", 500) ?? null;
+      if (body.achievement === undefined && body.requiresSupport === undefined && !note) throw new Error("Achievement, support, or a note must be provided");
       const achievement = body.achievement === undefined ? current?.achievement ?? "not_started" : oneOf(body.achievement, achievementLevels, "Achievement");
       const requiresSupport = body.requiresSupport === undefined ? Boolean(current?.requiresSupport) : boolean(body.requiresSupport, "Requires support");
       let timestamp = now();
@@ -751,9 +752,9 @@ function registerSkills(app: FastifyInstance, db: AppDatabase, photoDir: string,
       const beforeRows = db.prepare("SELECT studentId, skillId, achievement, requiresSupport FROM mastery WHERE classId = ? AND teacherId = ? AND studentId = ?").all(classId, teacherId, studentId) as Record<string, unknown>[];
       const parent = skill.parentSkillId ? skills.find((item) => item.id === skill.parentSkillId) : undefined;
       let parentCounts = parent ? parentSummary(skills, beforeRows, studentId, parent.id) : null;
-      if (achievement !== (current?.achievement ?? "not_started") || requiresSupport !== Boolean(current?.requiresSupport)) db.transaction(() => {
+      if (achievement !== (current?.achievement ?? "not_started") || requiresSupport !== Boolean(current?.requiresSupport) || note) db.transaction(() => {
         db.prepare("INSERT INTO mastery (teacherId, classId, studentId, skillId, achievement, requiresSupport, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(studentId, skillId) DO UPDATE SET achievement = excluded.achievement, requiresSupport = excluded.requiresSupport, updatedAt = excluded.updatedAt WHERE teacherId = excluded.teacherId AND classId = excluded.classId").run(teacherId, classId, studentId, skillId, achievement, Number(requiresSupport), timestamp);
-        db.prepare("INSERT INTO mastery_events (id, teacherId, classId, studentId, skillId, previousAchievement, achievement, previousRequiresSupport, requiresSupport, timestamp, periodId, skillLabel, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(id(), teacherId, classId, studentId, skillId, current?.achievement ?? "not_started", achievement, Number(Boolean(current?.requiresSupport)), Number(requiresSupport), timestamp, period?.id ?? null, skill.label, skill.category);
+        db.prepare("INSERT INTO mastery_events (id, teacherId, classId, studentId, skillId, previousAchievement, achievement, previousRequiresSupport, requiresSupport, timestamp, periodId, skillLabel, category, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(id(), teacherId, classId, studentId, skillId, current?.achievement ?? "not_started", achievement, Number(Boolean(current?.requiresSupport)), Number(requiresSupport), timestamp, period?.id ?? null, skill.label, skill.category, note);
         const afterRows = beforeRows.filter((item) => item.skillId !== skillId).concat({ studentId, skillId, achievement, requiresSupport });
         parentCounts = parent ? parentSummary(skills, afterRows, studentId, parent.id) : null;
       })();

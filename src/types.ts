@@ -149,6 +149,7 @@ export interface MasteryEvent {
   periodId: string | null;
   skillLabel: string;
   category: string;
+  note?: string | null;
 }
 export interface SkillPhoto {
   id: string;

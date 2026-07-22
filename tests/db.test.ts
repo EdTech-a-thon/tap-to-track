@@ -31,7 +31,7 @@ describe("database migrations", () => {
   it("create the current schema in memory", () => {
     const db = createDatabase(":memory:");
     const schema = structuralSnapshot(db);
-    expect(schema.versions).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(schema.versions).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     expect(schema.mastery).toEqual(expect.arrayContaining(["achievement", "requiresSupport"]));
     expect(schema.mastery).not.toContain("state");
     expect(schema.period).toEqual(expect.arrayContaining(["status", "attendanceCompletedAt", "reopenedAt"]));
