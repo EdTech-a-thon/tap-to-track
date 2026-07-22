@@ -24,4 +24,12 @@ describe("request rail", () => {
     expect([...unseen]).toEqual(["new"]);
     expect(requestAlert(unseen, groupRequestLanes(types, requests))).toBe("1 new request: 1 Help");
   });
+
+  it("keeps acknowledged requests visible without announcing them as new", () => {
+    const acknowledged = request("seen", "help", "2026-01-01", "acknowledged");
+    const lanes = groupRequestLanes(types, [acknowledged]);
+
+    expect(lanes[0].requests).toEqual([acknowledged]);
+    expect(unseenRequestIds([acknowledged], new Set())).toEqual(new Set());
+  });
 });

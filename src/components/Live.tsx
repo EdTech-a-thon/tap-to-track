@@ -1680,7 +1680,16 @@ function RequestRail() {
   useEffect(() => dataStore.subscribeRequestUpdates(classId, () => {
     setPulse(true);
     window.setTimeout(() => setPulse(false), 900);
+    void dataStore.getSnapshot(classId, true).then(setSnapshot).catch(() => undefined);
   }), [classId]);
+
+  useEffect(() => {
+    if (!classId) return;
+    const refreshRequests = () =>
+      void dataStore.getSnapshot(classId, true).then(setSnapshot).catch(() => undefined);
+    const interval = window.setInterval(refreshRequests, 5_000);
+    return () => window.clearInterval(interval);
+  }, [classId]);
 
   const prepared = useMemo(() => {
     if (!snapshot) return null;
