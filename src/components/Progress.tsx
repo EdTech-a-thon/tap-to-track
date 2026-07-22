@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { achievementDisplay, achievementOptions } from "../assessment";
 import { dataStore } from "../data";
 import { useApp } from "../state";
-import type { Achievement, AllClassProgressRow, ClassReport, ClassSnapshot, ParentSummary, ParticipationAction, Period, ReportSkill, ReportStudent, SkillPhoto } from "../types";
+import type { Achievement, AllClassProgressRow, ClassReport, ClassSnapshot, ParentSummary, ParticipationAction, Period, ReportSkill, ReportStudent, SkillPhoto, StudentGroup } from "../types";
 
-type ReportTab = "insights" | "participation" | "skills";
+type ReportTab = "insights" | "participation" | "skills" | "groups";
 type Range = "last5" | "last10" | "week" | "all" | "custom";
 type InsightSort = "name" | "participation" | "lastAction";
 type SortDirection = "ascending" | "descending";
@@ -71,12 +71,13 @@ export function Progress() {
       <label>Teacher tag<select value={tag} onChange={(event) => setTag(event.target.value)}><option value="">Every learner</option>{snapshot.tags.map((item) => <option value={item.label} key={item.id}>{item.label}</option>)}</select></label>
       <label>Find learner<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search display names"/></label>
     </section>
-    <nav className="report-tabs" aria-label="Insights sections">{(["insights", "participation", "skills"] as ReportTab[]).map((item) => <button className={tab === item ? "active" : ""} aria-current={tab === item ? "page" : undefined} onClick={() => setTab(item)} key={item}>{item}</button>)}</nav>
-    {loading && <p className="loading-inline" role="status">Updating report...</p>}
-    {!loading && report && <>
+     <nav className="report-tabs" aria-label="Insights sections">{(["insights", "participation", "skills", "groups"] as ReportTab[]).map((item) => <button className={tab === item ? "active" : ""} aria-current={tab === item ? "page" : undefined} onClick={() => setTab(item)} key={item}>{item}</button>)}</nav>
+     {loading && <p className="loading-inline" role="status">Updating report...</p>}
+     {tab === "groups" && <GroupSettings />}
+     {!loading && report && <>
       {tab === "insights" && <Insights report={report} students={students} onSelect={setSelectedId}/>} 
       {tab === "participation" && <Participation students={students} report={report} onSelect={setSelectedId}/>}
-      {tab === "skills" && <Skills report={report} students={students}/>} 
+       {tab === "skills" && <Skills report={report} students={students}/>}
     </>}
     {selected && report && <StudentEvidence classId={classId} student={selected} report={report} snapshot={snapshot} onRefresh={refresh} onClose={() => setSelectedId(undefined)}/>} 
     </>}
@@ -92,6 +93,32 @@ function AllClasses() {
   const ordered = [...rows].sort((a, b) => sort === "name" ? a.displayName.localeCompare(b.displayName) : sort === "support" ? b.supportCount - a.supportCount || a.displayName.localeCompare(b.displayName) : sort === "absence" ? b.absenceCount - a.absenceCount || a.displayName.localeCompare(b.displayName) : a.className.localeCompare(b.className) || a.displayName.localeCompare(b.displayName));
   const start = total ? (page - 1) * 100 + 1 : 0; const end = Math.min(page * 100, total);
   return <><section className="report-bar card"><label>Find learner<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search display names"/></label><label>Class<select value={classId} onChange={(event) => setClassId(event.target.value)}><option value="">All classes</option>{classes.map((room) => <option value={room.id} key={room.id}>{room.name}</option>)}</select></label><label>Support<select value={support} onChange={(event) => setSupport(event.target.value)}><option value="">All learners</option><option value="yes">Has support flags</option><option value="no">No support flags</option></select></label><label>Sort<select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}><option value="class">Class</option><option value="name">Learner</option><option value="support">Most support flags</option><option value="absence">Most absences</option></select></label></section><section className="matrix-wrap card"><div className="section-heading"><h2>All-class learner evidence</h2><strong>{start}-{end} of {total}</strong></div><table className="report-table all-class-table"><thead><tr><th>Learner</th><th>Class</th><th>Positive Action days</th><th>Absences</th><th>Skill evidence</th><th>Meet/exceed</th><th>Support flags</th><th>Last action</th></tr></thead><tbody>{ordered.map((row) => <tr key={`${row.classId}:${row.studentId}`}><th>{row.displayName}</th><td>{row.className}</td><td>{row.positiveActionDays}/{row.eligibleDays}</td><td>{row.absenceCount}/{row.enrolledClassDays}</td><td>{row.evidenceCount}/{row.totalSkills}</td><td>{row.meetOrExceedCount}/{row.totalSkills}</td><td>{row.supportCount}</td><td>{row.lastActionAt ? new Date(row.lastActionAt).toLocaleDateString() : "None"}</td></tr>)}</tbody></table>{!rows.length && <p className="empty-report">No learners match these filters.</p>}<div className="button-row pagination"><button className="secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous 100</button><button className="secondary" disabled={end >= total} onClick={() => setPage(page + 1)}>Next 100</button></div></section></>;
+}
+
+function GroupSettings() {
+  const { snapshot, setSnapshot } = useApp();
+  const [name, setName] = useState("");
+  if (!snapshot) return null;
+  const activeStudents = snapshot.students.filter((student) => !student.archived);
+  const assignmentByStudent = new Map(snapshot.groupAssignments.map((assignment) => [assignment.studentId, assignment.groupId]));
+  const members = (group: StudentGroup) => activeStudents.filter((student) => assignmentByStudent.get(student.id) === group.id);
+  const refresh = async () => {
+    await dataStore.sync();
+    setSnapshot(await dataStore.getSnapshot(snapshot.classRoom.id, true));
+  };
+  const addGroup = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!name.trim()) return;
+    await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/groups`, "POST", { label: name.trim() });
+    setName("");
+    await refresh();
+  };
+  return <section className="group-settings">
+    <section className="card group-board-intro"><div><p className="eyebrow">WORKING GROUPS</p><h2>Group board</h2><p>Set up groups, then learners can choose their own. This board stays here so Today remains focused on teaching.</p></div><strong>{activeStudents.length - snapshot.groupAssignments.filter((assignment) => activeStudents.some((student) => student.id === assignment.studentId)).length} unassigned</strong></section>
+    <form className="card group-builder" onSubmit={addGroup}><label>New group name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Table 1" /></label><button className="primary" disabled={!name.trim()}>Add group</button></form>
+    {snapshot.groups.length ? <div className="teacher-group-board">{snapshot.groups.map((group) => <section className="card teacher-group" key={group.id} style={{ borderTopColor: group.color }}><div className="section-heading"><div><p className="eyebrow">{members(group).length} LEARNERS</p><h3>{group.label}</h3></div><button className="text-button danger" onClick={async () => { if (!confirm(`Remove ${group.label}? Learners will become unassigned.`)) return; await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/groups/${group.id}`, "DELETE"); await refresh(); }}>Remove</button></div><div className="group-member-list">{members(group).map((student) => <label key={student.id}><span>{student.displayName}</span><select value={group.id} onChange={async (event) => { const next = event.target.value; if (next) await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/groups/${next}/members/${student.id}`, "PUT"); else await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/groups/members/${student.id}`, "DELETE"); await refresh(); }}><option value="">Unassigned</option>{snapshot.groups.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}</select></label>)}{!members(group).length && <p className="empty-note">No learners have selected this group yet.</p>}</div></section>)}</div> : <section className="card empty-report"><h2>Start with a group</h2><p>Add groups such as tables, teams, or stations. Learners will see them in their Groups tab.</p></section>}
+    <section className="card unassigned-learners"><div className="section-heading"><h3>Unassigned learners</h3><strong>{activeStudents.filter((student) => !assignmentByStudent.has(student.id)).length}</strong></div>{activeStudents.filter((student) => !assignmentByStudent.has(student.id)).map((student) => <label key={student.id}><span>{student.displayName}</span><select value="" onChange={async (event) => { if (!event.target.value) return; await dataStore.mutate(snapshot.classRoom.id, `/classes/${snapshot.classRoom.id}/groups/${event.target.value}/members/${student.id}`, "PUT"); await refresh(); }}><option value="">Assign to group</option>{snapshot.groups.map((group) => <option value={group.id} key={group.id}>{group.label}</option>)}</select></label>)}</section>
+  </section>;
 }
 
 function Insights({ report, students, onSelect }: { report: ClassReport; students: ReportStudent[]; onSelect: (id: string) => void }) {

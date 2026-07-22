@@ -58,7 +58,7 @@ function notify(app: FastifyInstance, classId: string, type = "update") {
   app.broadcastClass?.(classId, { type, classId });
 }
 
-type StudentRefreshReason = "attendance" | "mastery" | "class-day" | "settings" | "request-types" | "student-profile";
+type StudentRefreshReason = "attendance" | "mastery" | "class-day" | "settings" | "request-types" | "student-profile" | "groups";
 
 function refreshStudents(app: FastifyInstance, classId: string, reason: StudentRefreshReason, studentIds?: string[]) {
   const message = { type: "student-refresh", classId, reason };
@@ -383,6 +383,67 @@ export function registerTeacherRoutes(app: FastifyInstance, db: AppDatabase, pho
     const result = db.prepare("UPDATE students SET x = NULL, y = NULL WHERE classId = ? AND teacherId = ? AND (x IS NOT NULL OR y IS NOT NULL)").run(classId, teacherId);
     notify(app, classId);
     return { reset: result.changes };
+  });
+
+  app.post("/api/classes/:classId/groups", auth, async (request, reply) => {
+    try {
+      const { classId } = params(request);
+      const teacherId = (request as TeacherRequest).teacherId;
+      if (!ownedClass(db, teacherId, classId)) return reply.code(404).send({ error: "Class not found" });
+      const body = object(request.body);
+      const groupId = id();
+      db.prepare("INSERT INTO groups (id, teacherId, classId, label, color, createdAt) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(groupId, teacherId, classId, text(body.label, "Group name", 80), optionalText(body.color, "Group color", 30) ?? "#4f766f", now());
+      notify(app, classId);
+      refreshStudents(app, classId, "groups");
+      return reply.code(201).send({ id: groupId });
+    } catch (error) { return reply.code(400).send({ error: (error as Error).message }); }
+  });
+
+  app.patch("/api/classes/:classId/groups/:groupId", auth, async (request, reply) => {
+    try {
+      const { classId, groupId } = params(request);
+      const teacherId = (request as TeacherRequest).teacherId;
+      const body = object(request.body);
+      const group = db.prepare("SELECT label, color FROM groups WHERE id = ? AND classId = ? AND teacherId = ?").get(groupId, classId, teacherId) as Record<string, unknown> | undefined;
+      if (!group) return reply.code(404).send({ error: "Group not found" });
+      db.prepare("UPDATE groups SET label = ?, color = ? WHERE id = ? AND classId = ? AND teacherId = ?")
+        .run(body.label === undefined ? group.label : text(body.label, "Group name", 80), body.color === undefined ? group.color : text(body.color, "Group color", 30), groupId, classId, teacherId);
+      notify(app, classId);
+      refreshStudents(app, classId, "groups");
+      return { ok: true };
+    } catch (error) { return reply.code(400).send({ error: (error as Error).message }); }
+  });
+
+  app.delete("/api/classes/:classId/groups/:groupId", auth, async (request, reply) => {
+    const { classId, groupId } = params(request);
+    const teacherId = (request as TeacherRequest).teacherId;
+    const result = db.prepare("DELETE FROM groups WHERE id = ? AND classId = ? AND teacherId = ?").run(groupId, classId, teacherId);
+    if (!result.changes) return reply.code(404).send({ error: "Group not found" });
+    notify(app, classId);
+    refreshStudents(app, classId, "groups");
+    return reply.code(204).send();
+  });
+
+  app.put("/api/classes/:classId/groups/:groupId/members/:studentId", auth, async (request, reply) => {
+    const { classId, groupId, studentId } = params(request);
+    const teacherId = (request as TeacherRequest).teacherId;
+    const valid = db.prepare("SELECT 1 FROM groups g JOIN students s ON s.id = ? AND s.classId = g.classId AND s.teacherId = g.teacherId WHERE g.id = ? AND g.classId = ? AND g.teacherId = ?").get(studentId, groupId, classId, teacherId);
+    if (!valid) return reply.code(404).send({ error: "Group or learner not found" });
+    db.prepare("INSERT INTO group_members (teacherId, classId, groupId, studentId, updatedAt) VALUES (?, ?, ?, ?, ?) ON CONFLICT(studentId) DO UPDATE SET groupId = excluded.groupId, updatedAt = excluded.updatedAt")
+      .run(teacherId, classId, groupId, studentId, now());
+    notify(app, classId);
+    refreshStudents(app, classId, "groups", [studentId]);
+    return { ok: true };
+  });
+
+  app.delete("/api/classes/:classId/groups/members/:studentId", auth, async (request, reply) => {
+    const { classId, studentId } = params(request);
+    const teacherId = (request as TeacherRequest).teacherId;
+    db.prepare("DELETE FROM group_members WHERE classId = ? AND teacherId = ? AND studentId = ?").run(classId, teacherId, studentId);
+    notify(app, classId);
+    refreshStudents(app, classId, "groups", [studentId]);
+    return reply.code(204).send();
   });
 
   app.delete("/api/classes/:classId/students/:studentId", auth, async (request, reply) => {

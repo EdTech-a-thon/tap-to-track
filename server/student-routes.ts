@@ -208,6 +208,26 @@ export function registerStudentRoutes(
       return reply.code(204).send();
     },
   );
+
+  app.put("/api/student/groups/:groupId", { preHandler: requireStudent }, async (request, reply) => {
+    const { classId, studentId } = (request as StudentRequest).studentAccess;
+    const { groupId } = request.params as { groupId: string };
+    const group = db.prepare("SELECT teacherId FROM groups WHERE id = ? AND classId = ?").get(groupId, classId) as { teacherId: string } | undefined;
+    if (!group) return reply.code(404).send({ error: "Group not found" });
+    db.prepare("INSERT INTO group_members (teacherId, classId, groupId, studentId, updatedAt) VALUES (?, ?, ?, ?, ?) ON CONFLICT(studentId) DO UPDATE SET groupId = excluded.groupId, updatedAt = excluded.updatedAt")
+      .run(group.teacherId, classId, groupId, studentId, now());
+    app.broadcastClass?.(classId, { type: "update", classId });
+    app.notifyStudent?.(classId, studentId, { type: "student-refresh", classId, reason: "groups" });
+    return { ok: true };
+  });
+
+  app.delete("/api/student/groups", { preHandler: requireStudent }, async (request, reply) => {
+    const { classId, studentId } = (request as StudentRequest).studentAccess;
+    db.prepare("DELETE FROM group_members WHERE classId = ? AND studentId = ?").run(classId, studentId);
+    app.broadcastClass?.(classId, { type: "update", classId });
+    app.notifyStudent?.(classId, studentId, { type: "student-refresh", classId, reason: "groups" });
+    return reply.code(204).send();
+  });
 }
 
 function ownView(db: AppDatabase, row: Row) {
@@ -256,7 +276,9 @@ function ownView(db: AppDatabase, row: Row) {
     LEFT JOIN attendance a ON a.periodId = p.id AND a.studentId = s.id
     WHERE p.classId = ? AND p.status != 'scheduled' AND p.participationExpected = 1
       AND p.startedAt >= s.enrolledAt AND (s.archivedAt IS NULL OR p.startedAt <= s.archivedAt)
-      AND COALESCE(a.status, 'present') = 'present'`).all(studentId, studentId, classId) as { participated: number }[];
+       AND COALESCE(a.status, 'present') = 'present'`).all(studentId, studentId, classId) as { participated: number }[];
+  const groups = db.prepare("SELECT id, label, color FROM groups WHERE classId = ? ORDER BY createdAt, rowid").all(classId) as Row[];
+  const groupAssignment = db.prepare("SELECT groupId FROM group_members WHERE classId = ? AND studentId = ?").get(classId, studentId) as Row | undefined;
   return {
     student: {
       id: row.id,
@@ -271,6 +293,8 @@ function ownView(db: AppDatabase, row: Row) {
     requests,
     requestPositions,
     participation: { participatedDays: participationDays.filter((day) => Boolean(day.participated)).length, eligibleDays: participationDays.length },
+    groups,
+    groupAssignment: groupAssignment ? { groupId: groupAssignment.groupId } : null,
     timer: db.prepare("SELECT classId, periodId, status, label, durationSeconds, endsAt, remainingSeconds, revision, updatedAt FROM class_timers WHERE classId = ?").get(classId) ?? null,
   };
 }

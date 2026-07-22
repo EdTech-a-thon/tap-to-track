@@ -118,6 +118,18 @@ export interface RequestType {
   behavior: "attention" | "presence" | "completion" | "custom";
   resolveLabel: string;
 }
+export interface StudentGroup {
+  id: string;
+  classId: string;
+  label: string;
+  color: string;
+  createdAt: string;
+}
+export interface GroupAssignment {
+  groupId: string;
+  studentId: string;
+  updatedAt: string;
+}
 export interface RequestStatus {
   id: string;
   studentId: string;
@@ -177,6 +189,8 @@ export interface ClassSnapshot {
   requests: RequestStatus[];
   requestHistory?: Omit<RequestStatus, "behavior" | "wait">[];
   tags: Tag[];
+  groups: StudentGroup[];
+  groupAssignments: GroupAssignment[];
 }
 
 export interface ReportStudent {

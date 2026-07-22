@@ -39,6 +39,8 @@ type OwnView = {
     position: number;
   }[];
   participation: { participatedDays: number; eligibleDays: number };
+  groups: { id: string; label: string; color: string }[];
+  groupAssignment: { groupId: string } | null;
   timer: ClassTimer | null;
 };
 
@@ -48,7 +50,7 @@ type StudentSocketMessage =
   | {
       type: "student-refresh";
       classId: string;
-      reason: "attendance" | "mastery" | "class-day" | "settings" | "request-types" | "student-profile";
+      reason: "attendance" | "mastery" | "class-day" | "settings" | "request-types" | "student-profile" | "groups";
     }
   | {
       type: "request-updated";
@@ -60,7 +62,7 @@ type StudentSocketMessage =
 export function StudentApp({ code }: { code: string }) {
   const [join, setJoin] = useState<JoinView>();
   const [view, setView] = useState<OwnView>();
-  const [tab, setTab] = useState<"participation" | "requests">("participation");
+  const [tab, setTab] = useState<"participation" | "requests" | "groups">("requests");
   const [error, setError] = useState("");
   const [timer, setTimer] = useState<ClassTimer | null>(null);
   const [clock, setClock] = useState(Date.now());
@@ -177,6 +179,9 @@ export function StudentApp({ code }: { code: string }) {
     ? (view.requestPositions.find((item) => item.requestId === request.id)
         ?.position ?? 1)
     : 0;
+  const selectedRequestType = request
+    ? view.requestTypes.find((type) => type.id === request.requestTypeId)
+    : undefined;
   document.title =
     request?.behavior === "attention" && request.status === "active"
       ? `${view.student.displayName} · #${position} waiting`
@@ -188,6 +193,7 @@ export function StudentApp({ code }: { code: string }) {
     );
     await refresh();
   };
+  const assignedGroup = view.groups.find((group) => group.id === view.groupAssignment?.groupId);
 
   return (
     <main className="student-shell">
@@ -262,21 +268,39 @@ export function StudentApp({ code }: { code: string }) {
             </div>
           </div>
         )}
+        {tab === "groups" && (
+          <div className="student-groups">
+            <p className="eyebrow">WORKING GROUPS</p>
+            <h2>Choose your group</h2>
+            {view.groups.length ? <>
+              <p className="group-intro">Pick the group your teacher asked you to join. You can change your choice if your teacher reorganizes the class.</p>
+              {assignedGroup && <div className="group-status-card" style={{ borderColor: assignedGroup.color }}><span style={{ background: assignedGroup.color }} /><strong>You are in {assignedGroup.label}</strong><button className="text-button" onClick={async () => { await dataStore.studentAction("/groups", "DELETE"); await refresh(); }}>Leave group</button></div>}
+              <div className="group-choices">{view.groups.map((group) => <button key={group.id} className={group.id === assignedGroup?.id ? "selected" : ""} style={{ borderColor: group.color }} onClick={async () => { await dataStore.studentAction(`/groups/${group.id}`, "PUT"); await refresh(); }}><span style={{ background: group.color }} />{group.label}{group.id === assignedGroup?.id && <small>Your group</small>}</button>)}</div>
+            </> : <div className="card group-empty"><h3>No groups yet</h3><p>Your teacher has not set up groups for this class.</p></div>}
+          </div>
+        )}
       </section>
       <nav className="student-tabs" aria-label="Student sections">
+        <button
+          className={tab === "requests" ? "active" : ""}
+          aria-current={tab === "requests" ? "page" : undefined}
+          onClick={() => setTab("requests")}
+        >
+          Requests{selectedRequestType ? ` · ${selectedRequestType.label}` : ""}
+        </button>
+        <button
+          className={tab === "groups" ? "active" : ""}
+          aria-current={tab === "groups" ? "page" : undefined}
+          onClick={() => setTab("groups")}
+        >
+          Groups
+        </button>
         <button
           className={tab === "participation" ? "active" : ""}
           aria-current={tab === "participation" ? "page" : undefined}
           onClick={() => setTab("participation")}
         >
           Participation
-        </button>
-        <button
-          className={tab === "requests" ? "active" : ""}
-          aria-current={tab === "requests" ? "page" : undefined}
-          onClick={() => setTab("requests")}
-        >
-          Requests
         </button>
       </nav>
     </main>

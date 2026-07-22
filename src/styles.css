@@ -3178,6 +3178,36 @@ textarea {
   height: 28px;
   border-radius: 50%;
 }
+.student-groups { max-width: 700px; margin: 2rem auto; }
+.group-intro { color: #687872; max-width: 38rem; }
+.group-status-card { display: flex; align-items: center; gap: .7rem; border: 2px solid; border-radius: 14px; padding: .8rem 1rem; margin: 1rem 0; background: #fffdf7; }
+.group-status-card > span, .group-choices span { width: 18px; height: 18px; border-radius: 50%; flex: none; }
+.group-status-card .text-button { margin-left: auto; }
+.group-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .8rem; }
+.group-choices button { min-height: 88px; border: 3px solid; border-radius: 16px; background: #fff; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: .65rem; padding: 1rem; font-weight: 700; text-align: left; }
+.group-choices button.selected { background: #edf5ef; }
+.group-choices small { grid-column: 2; color: var(--green); }
+.group-empty { padding: 1.4rem; }
+.group-settings { display: grid; gap: 1rem; margin-top: 1rem; }
+.group-board-intro, .group-builder, .teacher-group, .unassigned-learners { padding: 1.15rem; }
+.group-board-intro { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.group-board-intro p { margin-bottom: 0; color: #687872; }
+.group-board-intro > strong { color: var(--green); white-space: nowrap; }
+.group-builder { display: flex; align-items: end; gap: .8rem; }
+.group-builder label { flex: 1; }
+.teacher-group-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+.teacher-group { border-top: 5px solid var(--green); }
+.group-member-list, .unassigned-learners { display: grid; gap: .55rem; }
+.group-member-list label, .unassigned-learners label { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding-top: .55rem; border-top: 1px solid var(--line); }
+.group-member-list select, .unassigned-learners select { min-width: 130px; }
+.group-glance { margin: .75rem 0; border: 1px solid var(--line); border-radius: 12px; background: #fffdf7b8; }
+.group-glance summary { cursor: pointer; display: flex; justify-content: space-between; padding: .7rem 1rem; font-weight: 700; }
+.group-glance summary span { color: #687872; font-size: .85rem; font-weight: 500; }
+.group-glance > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .5rem; padding: 0 .8rem .8rem; }
+.group-glance section { padding: .55rem .7rem; border-radius: 8px; background: #f4f0e7; }
+.group-glance strong, .group-glance span { display: block; }
+.group-glance i { display: inline-block; width: .65rem; height: .65rem; margin-right: .4rem; border-radius: 50%; }
+.group-glance section span { margin-top: .25rem; color: #687872; font-size: .82rem; }
 .student-tabs {
   position: fixed;
   bottom: 0;
@@ -3185,7 +3215,7 @@ textarea {
   transform: translateX(-50%);
   width: min(920px, 100%);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 0.5rem max(0.5rem, env(safe-area-inset-bottom));
   background: #fffdf7ed;
   backdrop-filter: blur(10px);
@@ -3193,10 +3223,14 @@ textarea {
   z-index: 20;
 }
 .student-tabs button {
+  min-width: 0;
   border: 0;
   border-radius: 10px;
   background: none;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .student-tabs .active {
   background: #dce9e3;

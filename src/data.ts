@@ -90,7 +90,7 @@ export interface DataStore {
   getStudentView(): Promise<unknown>;
   studentAction(
     path: string,
-    method: "GET" | "POST" | "PATCH" | "DELETE",
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     body?: unknown,
   ): Promise<unknown>;
   mutate(
@@ -261,7 +261,7 @@ class BrowserDataStore implements DataStore {
   }
   async studentAction(
     path: string,
-    method: "GET" | "POST" | "PATCH" | "DELETE",
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     body?: unknown,
   ) {
     return request(`/student${path}`, {

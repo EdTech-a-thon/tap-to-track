@@ -263,6 +263,31 @@ export function createDatabase(path = process.env.DB_PATH || "data/tap-to-track.
   migrate(12, () => {
     addColumn("mastery_events", "note", "TEXT");
   });
+  migrate(13, () => {
+    db.exec(`
+      CREATE TABLE groups (
+        id TEXT PRIMARY KEY,
+        teacherId TEXT NOT NULL,
+        classId TEXT NOT NULL,
+        label TEXT NOT NULL,
+        color TEXT NOT NULL DEFAULT '#4f766f',
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY(classId) REFERENCES classes(id) ON DELETE CASCADE
+      );
+      CREATE UNIQUE INDEX idx_groups_class_label ON groups(teacherId, classId, label COLLATE NOCASE);
+      CREATE TABLE group_members (
+        teacherId TEXT NOT NULL,
+        classId TEXT NOT NULL,
+        groupId TEXT NOT NULL,
+        studentId TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        PRIMARY KEY(studentId),
+        FOREIGN KEY(groupId) REFERENCES groups(id) ON DELETE CASCADE,
+        FOREIGN KEY(studentId) REFERENCES students(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_group_members_class_group ON group_members(teacherId, classId, groupId);
+    `);
+  });
   db.exec("DROP TABLE IF EXISTS request_status");
   db.exec(`
     INSERT OR IGNORE INTO attendance (teacherId, classId, periodId, studentId, status)

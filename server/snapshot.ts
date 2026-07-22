@@ -42,6 +42,8 @@ export function getClassSnapshot(db: AppDatabase, teacherId: string, classId: st
     resolvedAt, cancelledAt, resolvedBy, updatedAt FROM requests
     WHERE classId = ? AND teacherId = ? ORDER BY joinedAt, rowid`).all(classId, teacherId);
   const tags = db.prepare("SELECT id, classId, label FROM tags WHERE classId = ? AND teacherId = ?").all(classId, teacherId);
+  const groups = db.prepare("SELECT id, classId, label, color, createdAt FROM groups WHERE classId = ? AND teacherId = ? ORDER BY createdAt, rowid").all(classId, teacherId);
+  const groupAssignments = db.prepare("SELECT groupId, studentId, updatedAt FROM group_members WHERE classId = ? AND teacherId = ?").all(classId, teacherId);
   const skillRows = skills as unknown as Row[]; const masteryRows = mastery as Row[]; const parentSkills = skillRows.filter((skill) => !skill.parentSkillId);
   const childrenByParent = new Map<string, Row[]>();
   for (const skill of skillRows) if (skill.parentSkillId) {
@@ -67,7 +69,7 @@ export function getClassSnapshot(db: AppDatabase, teacherId: string, classId: st
     parentSummaries: Object.fromEntries(parentSkills.map((skill) => [String(skill.id), summarize(item.id, skill.id)])),
     skillsTotal: parentSkills.length,
   }));
-  return { classRoom: classRoom(room), students, skills, mastery, masteryEvents: masteryEvents.map((event) => ({ ...event, previousRequiresSupport: Boolean(event.previousRequiresSupport), requiresSupport: Boolean(event.requiresSupport) })), periods, attendance, events, requestTypes, requests, requestHistory, tags, rosterImports: [], summaries };
+  return { classRoom: classRoom(room), students, skills, mastery, masteryEvents: masteryEvents.map((event) => ({ ...event, previousRequiresSupport: Boolean(event.previousRequiresSupport), requiresSupport: Boolean(event.requiresSupport) })), periods, attendance, events, requestTypes, requests, requestHistory, tags, groups, groupAssignments, rosterImports: [], summaries };
 }
 
 export function getTeacherClasses(db: AppDatabase, teacherId: string) {
