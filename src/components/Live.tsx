@@ -56,6 +56,10 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
   const [skillStudentId, setSkillStudentId] = useState("");
   const [assessmentStudentId, setAssessmentStudentId] = useState("");
   const [rapid, dispatchRapid] = useReducer(rapidAssessmentReducer, { status: "idle", target: "meets" });
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkTarget, setBulkTarget] = useState<Achievement>("meets");
+  const [lastBulkAssignment, setLastBulkAssignment] = useState<{ skillId: string; learners: { studentId: string; achievement: Achievement; requiresSupport: boolean }[] }>();
   const [feedback, setFeedback] = useState<{
     studentId: string;
     type: "positive" | "redirect";
@@ -101,6 +105,9 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
     setSkillStudentId("");
     setAssessmentStudentId("");
     dispatchRapid({ type: "exit" });
+    setBulkMode(false);
+    setBulkSelectedIds(new Set());
+    setLastBulkAssignment(undefined);
     setArranging(openSeating);
     setFocusOrder(false);
     setViewPeriodId(initialPeriodId);
@@ -149,7 +156,10 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
   }, []);
   useEffect(() => {
     dispatchRapid({ type: "exit" });
+    setBulkMode(false);
     setAssessmentStudentId("");
+    setBulkSelectedIds(new Set());
+    setLastBulkAssignment(undefined);
   }, [skillId, viewPeriodId, lens]);
   useEffect(() => {
     const viewport = mapViewportRef.current;
@@ -437,6 +447,14 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
   const handleSkillTap = (student: Student) => {
     if (!skillId) return setSkillStudentId(student.id);
     if (snapshot.skills.some((skill) => skill.parentSkillId === skillId)) return setSkillStudentId(student.id);
+    if (bulkMode) {
+      setBulkSelectedIds((current) => {
+        const next = new Set(current);
+        next.has(student.id) ? next.delete(student.id) : next.add(student.id);
+        return next;
+      });
+      return;
+    }
     if (rapid.status === "active") {
       const previous = masteryFor(student.id, skillId);
       setAssessment(student, skillId, { achievement: rapid.target });
@@ -444,6 +462,36 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
       return;
     }
     setAssessmentStudentId((current) => current === student.id ? "" : student.id);
+  };
+  const beginBulkAssignment = () => {
+    setAssessmentStudentId("");
+    dispatchRapid({ type: "exit" });
+    setBulkMode(true);
+    setBulkSelectedIds(new Set());
+    setLastBulkAssignment(undefined);
+  };
+  const applyBulkAssignment = () => {
+    if (!skillId || !bulkSelectedIds.size) return;
+    const selectedStudents = activeStudents.filter((student) => bulkSelectedIds.has(student.id));
+    const names = selectedStudents.map((student) => student.displayName);
+    const learnerSummary = names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")}, and ${names.length - 2} others`;
+    if (!confirm(`Set ${selectedSkill?.label} to ${achievementDisplay(bulkTarget).label} for ${learnerSummary}? Support will not change.`)) return;
+    const learners = selectedStudents.map((student) => {
+      const current = masteryFor(student.id, skillId);
+      setAssessment(student, skillId, { achievement: bulkTarget });
+      return { studentId: student.id, achievement: current.achievement, requiresSupport: current.requiresSupport };
+    });
+    setLastBulkAssignment({ skillId, learners });
+    setBulkSelectedIds(new Set());
+    setBulkMode(false);
+  };
+  const undoBulkAssignment = () => {
+    if (!lastBulkAssignment) return;
+    for (const learner of lastBulkAssignment.learners) {
+      const student = activeStudents.find((item) => item.id === learner.studentId);
+      if (student) setAssessment(student, lastBulkAssignment.skillId, { achievement: learner.achievement, requiresSupport: learner.requiresSupport });
+    }
+    setLastBulkAssignment(undefined);
   };
   const toggleMap = () => {
     const next = !mapMode;
@@ -612,16 +660,11 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
           </button>
         </div>
         {lens === "skills" && (
-          <select
-            className="skill-selector"
-            value={skillId}
-            onChange={(event) => {
-              const nextSkillId = event.target.value;
-              if (rapid.status === "active" && nextSkillId !== skillId && !confirm("Exit rapid assessment and switch skills?")) return;
-              setSkillId(nextSkillId);
-            }}
-            aria-label="Skill"
-          >
+          <div className="skill-selector-actions"><select className="skill-selector" value={skillId} onChange={(event) => {
+            const nextSkillId = event.target.value;
+            if (rapid.status === "active" && nextSkillId !== skillId && !confirm("Exit rapid assessment and switch skills?")) return;
+            setSkillId(nextSkillId);
+          }} aria-label="Skill">
             <option value="">All skills</option>
             {skillCategories.map((category) => (
               <optgroup label={category} key={category}>
@@ -642,7 +685,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
                   })}
               </optgroup>
             ))}
-          </select>
+          </select>{selectedSkill && !selectedIsParent && !viewingHistory && <button className={bulkMode ? "active-button" : "secondary"} onClick={() => bulkMode ? (setBulkMode(false), setBulkSelectedIds(new Set())) : beginBulkAssignment()}>{bulkMode ? "Cancel rapid assign" : "Rapid assign"}</button>}</div>
         )}
         <div className={`toolbar-actions ${moreOpen ? "is-open" : ""}`}>
           {viewingHistory ? (
@@ -716,7 +759,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
            </span>
          </section>
        )}
-      {lens === "skills" && selectedSkill && !selectedIsParent && !viewingHistory && (
+       {lens === "skills" && selectedSkill && !selectedIsParent && !viewingHistory && !bulkMode && (
         <section className={`rapid-controls ${rapid.status === "active" ? "is-active" : ""}`} aria-label="Rapid assessment">
           {rapid.status === "active" ? (
             <>
@@ -738,7 +781,9 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
             </>
           )}
         </section>
-      )}
+       )}
+       {lens === "skills" && selectedSkill && !selectedIsParent && bulkMode && <section className="bulk-assign-controls" aria-label="Rapid assign selected learners"><div><strong>Assigning {selectedSkill.label}</strong><span>{bulkSelectedIds.size ? `${bulkSelectedIds.size} learner${bulkSelectedIds.size === 1 ? "" : "s"} selected` : "Tap learners to select them"}</span></div><label>Level<select value={bulkTarget} onChange={(event) => setBulkTarget(event.target.value as Achievement)}>{achievementOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><button className="primary" disabled={!bulkSelectedIds.size} onClick={applyBulkAssignment}>Assign {achievementDisplay(bulkTarget).label}</button></section>}
+       {lastBulkAssignment && <section className="bulk-assignment-result" role="status"><span>{achievementDisplay(bulkTarget).label} assigned to {lastBulkAssignment.learners.length} learner{lastBulkAssignment.learners.length === 1 ? "" : "s"}. Support was unchanged.</span><button className="secondary" onClick={undoBulkAssignment}>Undo</button></section>}
       {attendanceMode && (
         <AttendancePanel
           present={presentCount}
@@ -899,7 +944,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
               >
                 <StudentTile
                   student={student}
-                  selected={(lens === "skills" && rapid.status === "active" && Boolean(skillId)) || actionStudentId === student.id}
+                  selected={(lens === "skills" && rapid.status === "active" && Boolean(skillId)) || bulkSelectedIds.has(student.id) || actionStudentId === student.id}
                   attendance={attendance(student.id)}
                   positives={
                     participationMode ? positives(student.id) : undefined
@@ -1430,7 +1475,7 @@ function SkillGroupHeader({ label, completed, total }: { label: string; complete
 
 function SkillRow({ skill, score, focused, inset = false, onFocus, rowRef }: { skill: import("../types").Skill; score: ChecklistScore; focused: boolean; inset?: boolean; onFocus: () => void; rowRef: (node: HTMLButtonElement | null) => void }) {
   const label = achievementDisplay(score.level).label;
-  return <button ref={rowRef} className={`focused-skill-row ${focused ? "is-focused" : ""} ${inset ? "is-subskill" : ""}`} onClick={onFocus} aria-pressed={focused} aria-label={`${skill.label}, ${label}${score.support ? ", requires support" : ""}`}><strong>{skill.label}</strong><span className="focused-row-state">{score.support && <i className="support-diamond" aria-label="Requires support">◇</i>}<b className={`focused-state-chip ${score.level}`}>{label}</b>{score.photoCount > 0 && <em aria-label={`${score.photoCount} photos`}>▣ {score.photoCount}</em>}</span></button>;
+  return <button ref={rowRef} className={`focused-skill-row ${focused ? "is-focused" : ""} ${inset ? "is-subskill" : ""}`} onClick={onFocus} aria-pressed={focused} aria-label={`${skill.label}, ${label}${score.support ? ", requires support" : ""}`}><strong>{skill.label}</strong><span className="focused-row-state">{score.support && <b className="support-label">◇ Requires support</b>}<b className={`focused-state-chip ${score.level}`}>{label}</b>{score.photoCount > 0 && <em aria-label={`${score.photoCount} photos`}>▣ {score.photoCount}</em>}</span></button>;
 }
 
 const ScoringRail = ({ skill, score, allScored, uploading, onLevel, onNext, onSupport, onPhoto }: { skill: import("../types").Skill | null; score: ChecklistScore | null; allScored: boolean; uploading: boolean; onLevel: (level: Achievement) => void; onNext: () => void; onSupport: () => void; onPhoto: () => void }, ref: ForwardedRef<HTMLElement>) => <section className="scoring-rail" ref={ref} aria-label="Scoring controls"><div className="scoring-rail-heading"><strong>{allScored ? "All skills scored." : skill ? `Scoring ${skill.label}` : "All skills scored."}</strong><button onClick={onNext} disabled={!skill || allScored}>Next unscored <span aria-hidden="true">→</span></button></div><div className="scoring-levels" role="radiogroup" aria-label={skill ? `Score ${skill.label}` : "No skill selected"}>{achievementOptions.map((option, index) => <button role="radio" aria-checked={score?.level === option.value} disabled={!skill || allScored} className={score?.level === option.value ? "selected" : ""} onClick={() => onLevel(option.value)} key={option.value}>{index === 0 ? "None" : option.label}</button>)}</div><div className="scoring-rail-actions"><button className={score?.support ? "support-on" : ""} onClick={onSupport} disabled={!skill}>◇ Requires support</button><button onClick={onPhoto} disabled={!skill || uploading}>{uploading ? "Saving photo..." : "Add photo"}</button></div></section>;

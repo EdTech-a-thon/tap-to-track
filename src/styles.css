@@ -2307,6 +2307,25 @@ textarea {
   color: #fff;
   margin-right: auto;
 }
+.skill-selector-actions { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+.skill-selector-actions .skill-selector { min-width: 0; flex: 1; }
+.skill-selector-actions button { min-height: 44px; white-space: nowrap; }
+.bulk-assign-controls, .bulk-assignment-result {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .6rem;
+  margin: .7rem 0;
+  padding: .7rem .85rem;
+  border: 2px solid #315f87;
+  border-radius: 12px;
+  background: #edf4f8;
+}
+.bulk-assign-controls > div { display: grid; gap: .1rem; margin-right: auto; }
+.bulk-assign-controls span { color: #536b78; font-size: .76rem; font-weight: 700; }
+.bulk-assign-controls label { display: flex; align-items: center; gap: .35rem; font-weight: 800; }
+.bulk-assign-controls select { min-height: 44px; border: 1px solid #7995a8; border-radius: 9px; background: white; padding: 0 .45rem; }
+.bulk-assignment-result { justify-content: space-between; color: #174f3b; border-color: #8abca0; background: #e3f2e8; font-size: .82rem; font-weight: 700; }
 .student-tile.is-selected {
   border: 4px double #204f70;
   box-shadow: 0 0 0 3px #8db4cd;
@@ -2819,7 +2838,7 @@ textarea {
 .focused-skill-row.is-focused > strong { font-weight: 500; }
 .focused-skill-row > strong { min-width: 0; font-size: .91rem; overflow-wrap: break-word; }
 .focused-row-state { display: flex; align-items: center; justify-content: flex-end; gap: .35rem; flex-shrink: 0; }
-.support-diamond { color: #a56413; font-size: 1.1rem; font-style: normal; line-height: 1; }
+.support-label { color: #805013; background: #fff3d4; border: 1px solid #d3a548; border-radius: 99px; padding: .2rem .38rem; font-size: .66rem; font-weight: 800; white-space: nowrap; }
 .focused-state-chip { white-space: nowrap; font-size: .7rem; font-weight: 800; }
 .focused-state-chip.not_started { color: #718078; font-weight: 700; }
 .focused-state-chip.approaching { color: #765515; background: #faedc7; padding: .22rem .4rem; border-radius: 99px; }
@@ -2874,6 +2893,11 @@ textarea {
   }
 }
 @media (max-width: 620px) {
+  .skill-selector-actions { width: 100%; }
+  .skill-selector-actions button { font-size: .72rem; }
+  .bulk-assign-controls { align-items: stretch; }
+  .bulk-assign-controls > div { width: 100%; }
+  .bulk-assign-controls label, .bulk-assign-controls button { flex: 1; }
   .achievement-options {
     grid-template-columns: 1fr 1fr;
   }
