@@ -646,6 +646,8 @@ describe("Tap-to-Track server", () => {
       payload: { achievement: "exceeds" },
     });
     const snapshot = (await server.inject({ method: "GET", url: `/api/classes/${room.id}/snapshot`, cookies: { session } })).json();
+    expect(snapshot.mastery.find((item: { skillId: string }) => item.skillId === first.json().id).achievement).toBe("meets");
+    expect(snapshot.mastery.find((item: { skillId: string }) => item.skillId === second.json().id).achievement).toBe("exceeds");
     expect(snapshot.summaries.find((item: { studentId: string }) => item.studentId === studentId).parentSummaries[parent.json().id].meetOrExceedCount).toBe(2);
   });
 

@@ -698,7 +698,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
                   })}
               </optgroup>
             ))}
-          </select>{selectedSkill && !selectedIsParent && !viewingHistory && <button className={bulkMode ? "active-button" : "secondary"} onClick={() => bulkMode ? (setBulkMode(false), setBulkSelectedIds(new Set())) : beginBulkAssignment()}>{bulkMode ? "Cancel rapid assign" : "Rapid assign"}</button>}</div>
+          </select><button className={bulkMode ? "active-button" : "secondary"} disabled={!selectedSkill || selectedIsParent || viewingHistory} onClick={() => bulkMode ? (setBulkMode(false), setBulkSelectedIds(new Set())) : beginBulkAssignment()}>{bulkMode ? "Cancel rapid assign" : "Rapid assign"}</button></div>
         )}
         <div className={`toolbar-actions ${moreOpen ? "is-open" : ""}`}>
           {viewingHistory ? (
@@ -1424,15 +1424,16 @@ function ChecklistScreen({
   };
   const setLevel = (level: Achievement) => {
     if (!focused) return;
+    const wasUnscored = scoreFor(focused.id).level === "not_started";
     onAssess(focused.id, { achievement: level });
     window.dispatchEvent(new CustomEvent("checklist-score", { detail: { version: "focused-rail", studentId: student.id, skillId: focused.id, level } }));
-    const nextId = nextUnscored(focused.id);
+    const nextId = wasUnscored ? nextUnscored(focused.id) : null;
     if (nextId) {
       const next = items.find((item) => item.id === nextId)!;
       setMessage(`${focused.label} set to ${achievementDisplay(level).label}. Now scoring ${next.label}.`);
       focusItem(nextId, true);
     } else {
-      setMessage(`${focused.label} set to ${achievementDisplay(level).label}. All skills scored.`);
+      setMessage(`${focused.label} set to ${achievementDisplay(level).label}.${allScored || !wasUnscored ? "" : " All skills scored."}`);
       focusItem(focused.id, false);
       if (!allScored && items.length > scoredAtOpen.current) {
         window.dispatchEvent(new CustomEvent("checklist-complete", { detail: { version: "focused-rail", studentId: student.id, scoredSkills: items.length - scoredAtOpen.current, elapsedMs: Date.now() - openedAt.current } }));
@@ -1491,7 +1492,7 @@ function SkillRow({ skill, score, focused, inset = false, onFocus, rowRef }: { s
   return <button ref={rowRef} className={`focused-skill-row ${focused ? "is-focused" : ""} ${inset ? "is-subskill" : ""}`} onClick={onFocus} aria-pressed={focused} aria-label={`${skill.label}, ${label}${score.support ? ", requires support" : ""}`}><strong>{skill.label}</strong><span className="focused-row-state">{score.support && <b className="support-label">◇ Requires support</b>}<b className={`focused-state-chip ${score.level}`}>{label}</b>{score.photoCount > 0 && <em aria-label={`${score.photoCount} photos`}>▣ {score.photoCount}</em>}</span></button>;
 }
 
-const ScoringRail = ({ skill, score, allScored, uploading, onLevel, onNext, onSupport, onPhoto }: { skill: import("../types").Skill | null; score: ChecklistScore | null; allScored: boolean; uploading: boolean; onLevel: (level: Achievement) => void; onNext: () => void; onSupport: () => void; onPhoto: () => void }, ref: ForwardedRef<HTMLElement>) => <section className="scoring-rail" ref={ref} aria-label="Scoring controls"><div className="scoring-rail-heading"><strong>{allScored ? "All skills scored." : skill ? `Scoring ${skill.label}` : "All skills scored."}</strong><button onClick={onNext} disabled={!skill || allScored}>Next unscored <span aria-hidden="true">→</span></button></div><div className="scoring-levels" role="radiogroup" aria-label={skill ? `Score ${skill.label}` : "No skill selected"}>{achievementOptions.map((option, index) => <button role="radio" aria-checked={score?.level === option.value} disabled={!skill || allScored} className={score?.level === option.value ? "selected" : ""} onClick={() => onLevel(option.value)} key={option.value}>{index === 0 ? "None" : option.label}</button>)}</div><div className="scoring-rail-actions"><button className={score?.support ? "support-on" : ""} onClick={onSupport} disabled={!skill}>◇ Requires support</button><button onClick={onPhoto} disabled={!skill || uploading}>{uploading ? "Saving photo..." : "Add photo"}</button></div></section>;
+const ScoringRail = ({ skill, score, allScored, uploading, onLevel, onNext, onSupport, onPhoto }: { skill: import("../types").Skill | null; score: ChecklistScore | null; allScored: boolean; uploading: boolean; onLevel: (level: Achievement) => void; onNext: () => void; onSupport: () => void; onPhoto: () => void }, ref: ForwardedRef<HTMLElement>) => <section className="scoring-rail" ref={ref} aria-label="Scoring controls"><div className="scoring-rail-heading"><strong>{skill ? `Scoring ${skill.label}${allScored ? " · all skills scored" : ""}` : "All skills scored."}</strong><button onClick={onNext} disabled={!skill || allScored}>Next unscored <span aria-hidden="true">→</span></button></div><div className="scoring-levels" role="radiogroup" aria-label={skill ? `Score ${skill.label}` : "No skill selected"}>{achievementOptions.map((option, index) => <button role="radio" aria-checked={score?.level === option.value} disabled={!skill} className={score?.level === option.value ? "selected" : ""} onClick={() => onLevel(option.value)} key={option.value}>{index === 0 ? "None" : option.label}</button>)}</div><div className="scoring-rail-actions"><button className={score?.support ? "support-on" : ""} onClick={onSupport} disabled={!skill}>◇ Requires support</button><button onClick={onPhoto} disabled={!skill || uploading}>{uploading ? "Saving photo..." : "Add photo"}</button></div></section>;
 const ForwardScoringRail = forwardRef(ScoringRail);
 
 function LegacySkillChecklist({
@@ -1603,6 +1604,7 @@ function AchievementSelector({ achievement, requiresSupport, onAchievement, onSu
   const [selectedAchievement, setSelectedAchievement] = useState(achievement);
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
+  useEffect(() => setSelectedAchievement(achievement), [achievement]);
   return (
     <div className="achievement-selector" aria-label="Achievement evidence">
       <div className="achievement-options">
