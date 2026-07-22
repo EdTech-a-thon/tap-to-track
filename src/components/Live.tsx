@@ -1427,17 +1427,10 @@ function ChecklistScreen({
     const wasUnscored = scoreFor(focused.id).level === "not_started";
     onAssess(focused.id, { achievement: level });
     window.dispatchEvent(new CustomEvent("checklist-score", { detail: { version: "focused-rail", studentId: student.id, skillId: focused.id, level } }));
-    const nextId = wasUnscored ? nextUnscored(focused.id) : null;
-    if (nextId) {
-      const next = items.find((item) => item.id === nextId)!;
-      setMessage(`${focused.label} set to ${achievementDisplay(level).label}. Now scoring ${next.label}.`);
-      focusItem(nextId, true);
-    } else {
-      setMessage(`${focused.label} set to ${achievementDisplay(level).label}.${allScored || !wasUnscored ? "" : " All skills scored."}`);
-      focusItem(focused.id, false);
-      if (!allScored && items.length > scoredAtOpen.current) {
-        window.dispatchEvent(new CustomEvent("checklist-complete", { detail: { version: "focused-rail", studentId: student.id, scoredSkills: items.length - scoredAtOpen.current, elapsedMs: Date.now() - openedAt.current } }));
-      }
+    setMessage(`${focused.label} set to ${achievementDisplay(level).label}.${allScored || !wasUnscored ? "" : " All skills scored."}`);
+    focusItem(focused.id, false);
+    if (!allScored && wasUnscored && !nextUnscored(focused.id)) {
+      window.dispatchEvent(new CustomEvent("checklist-complete", { detail: { version: "focused-rail", studentId: student.id, scoredSkills: items.length - scoredAtOpen.current, elapsedMs: Date.now() - openedAt.current } }));
     }
   };
   const toggleSupport = () => {
