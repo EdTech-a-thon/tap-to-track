@@ -1,6 +1,12 @@
 node_modules
 out
 dist
+data/
+coverage/
+*.db
+*.db-shm
+*.db-wal
+*.tsbuildinfo
 .svelte-kit/
 *.local
 
