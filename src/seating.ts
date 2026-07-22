@@ -128,10 +128,11 @@ export function screenToSeat(
 }
 
 export function clampSeat(point: SeatPoint, bounds: SeatBounds): SeatPoint {
-  const minX = bounds.minX + SEAT_PADDING;
-  const minY = bounds.minY + SEAT_PADDING;
+  // Seats use room coordinates, so dragging must never save them above or left of the room.
+  const minX = Math.max(SEAT_PADDING, bounds.minX + SEAT_PADDING);
+  const minY = Math.max(SEAT_PADDING, bounds.minY + SEAT_PADDING);
   return {
-    x: Math.max(minX, Math.min(bounds.minX + bounds.width - SEAT_PADDING - SEAT_CARD_WIDTH, point.x)),
-    y: Math.max(minY, Math.min(bounds.minY + bounds.height - SEAT_PADDING - SEAT_CARD_HEIGHT, point.y)),
+    x: Math.max(minX, Math.min(Math.max(minX, bounds.minX + bounds.width - SEAT_PADDING - SEAT_CARD_WIDTH), point.x)),
+    y: Math.max(minY, Math.min(Math.max(minY, bounds.minY + bounds.height - SEAT_PADDING - SEAT_CARD_HEIGHT), point.y)),
   };
 }

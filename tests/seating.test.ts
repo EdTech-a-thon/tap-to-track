@@ -78,6 +78,12 @@ describe("seating geometry", () => {
     expect(clampSeat(logical, bounds)).toEqual({ x: bounds.minX + 28, y: bounds.minY + 28 });
   });
 
+  it("never saves a seat above or left of the room", () => {
+    const bounds = seatBounds([{ x: -240, y: -230 }, { x: 800, y: 400 }]);
+
+    expect(clampSeat({ x: -500, y: -500 }, bounds)).toEqual({ x: 28, y: 28 });
+  });
+
   it.each([
     [1, { width: 1100, height: 500 }],
     [0.75, { width: 1466.6666666666667, height: 666.6666666666666 }],

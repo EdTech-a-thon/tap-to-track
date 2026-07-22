@@ -15,7 +15,7 @@ import {
   type RosterFilter,
 } from "../roster";
 import { useApp } from "../state";
-import { centerSeats, clampSeat, defaultSeatPositions, fitSeats, logicalRoomForZoom, screenToSeat, seatBounds, SEAT_CARD_HEIGHT, SEAT_CARD_WIDTH, unionSeatBounds } from "../seating";
+import { centerSeats, clampSeat, defaultSeatPositions, fitSeats, logicalRoomForZoom, screenToSeat, seatBounds, SEAT_CARD_HEIGHT, SEAT_CARD_WIDTH, SEAT_PADDING, unionSeatBounds } from "../seating";
 import { topLevelSkills, type Achievement, type Lens, type PeriodType, type Student } from "../types";
 import { StudentGrid, StudentTile } from "./StudentGrid";
 
@@ -302,12 +302,12 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     mapViewportSize.height || 680,
   );
   const mapPositions = activeStudents.map((student, index) => ({
-    x: student.x ?? defaultPositions[index].x,
-    y: student.y ?? defaultPositions[index].y,
+    x: Math.max(SEAT_PADDING, student.x ?? defaultPositions[index].x),
+    y: Math.max(SEAT_PADDING, student.y ?? defaultPositions[index].y),
   }));
   const mapBounds = seatBounds(mapPositions);
-  // Leave room for card borders and the map controls so fitted names never clip at the frame edge.
-  const fittedBaseMap = fitSeats(mapBounds, mapViewportSize.width, mapViewportSize.height, mapFullscreen ? 32 : 24);
+  // Keep a small frame around the fitted chart without wasting classroom space.
+  const fittedBaseMap = fitSeats(mapBounds, mapViewportSize.width, mapViewportSize.height, mapFullscreen ? 16 : 8);
   const effectiveScale = fitMap ? fittedBaseMap.scale : mapScale;
   const logicalBounds = arranging
     ? unionSeatBounds(logicalRoomForZoom(mapViewportSize.width, mapViewportSize.height, effectiveScale), mapBounds)
@@ -891,8 +891,8 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
                   mapMode
                     ? ({
                         position: "absolute",
-                        left: student.x ?? defaultPositions[index].x,
-                        top: student.y ?? defaultPositions[index].y,
+                        left: mapPositions[index].x,
+                        top: mapPositions[index].y,
                       } as CSSProperties)
                     : undefined
                 }
