@@ -676,6 +676,32 @@ export function applyOptimisticChange(
     } as ClassRoom["settings"];
   } else if (path.endsWith("/seating/reset") && method === "POST") {
     next.students = next.students.map((student) => ({ ...student, x: undefined, y: undefined }));
+  } else if (path.endsWith("/groups") && method === "POST") {
+    next.groups.push({
+      id: crypto.randomUUID(),
+      classId: next.classRoom.id,
+      label: String(body.label),
+      color: typeof body.color === "string" ? body.color : "#4f766f",
+      createdAt: now,
+    });
+  } else if (/\/groups\/[^/]+$/.test(path) && method === "PATCH") {
+    const groupId = path.split("/groups/")[1];
+    next.groups = next.groups.map((group) => group.id === groupId ? {
+      ...group,
+      ...(typeof body.label === "string" ? { label: body.label } : {}),
+      ...(typeof body.color === "string" ? { color: body.color } : {}),
+    } : group);
+  } else if (/\/groups\/[^/]+$/.test(path) && method === "DELETE") {
+    const groupId = path.split("/groups/")[1];
+    next.groups = next.groups.filter((group) => group.id !== groupId);
+    next.groupAssignments = next.groupAssignments.filter((assignment) => assignment.groupId !== groupId);
+  } else if (/\/groups\/[^/]+\/members\/[^/]+$/.test(path) && method === "PUT") {
+    const [, groupId, studentId] = /\/groups\/([^/]+)\/members\/([^/]+)$/.exec(path) ?? [];
+    next.groupAssignments = next.groupAssignments.filter((assignment) => assignment.studentId !== studentId);
+    if (groupId && studentId) next.groupAssignments.push({ groupId, studentId, updatedAt: now });
+  } else if (/\/groups\/members\/[^/]+$/.test(path) && method === "DELETE") {
+    const studentId = path.split("/groups/members/")[1];
+    next.groupAssignments = next.groupAssignments.filter((assignment) => assignment.studentId !== studentId);
   } else if (path.includes("/students/") && method === "PATCH") {
     const studentId = path.split("/students/")[1];
     next.students = next.students.map((student) =>
