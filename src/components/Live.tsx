@@ -28,7 +28,7 @@ const seatingOrientation = (): SeatingOrientation =>
 function savedSeatingView(classId: string, orientation: SeatingOrientation): SeatingView {
   try {
     const saved = JSON.parse(localStorage.getItem(`seating-view:${classId}:${orientation}`) ?? "") as Partial<SeatingView>;
-    if (typeof saved.fit === "boolean" && Number.isFinite(saved.scale) && saved.scale >= 0.05 && saved.scale <= 1.5) {
+    if (typeof saved.fit === "boolean" && typeof saved.scale === "number" && Number.isFinite(saved.scale) && saved.scale >= 0.05 && saved.scale <= 1.5) {
       return { fit: saved.fit, scale: saved.scale };
     }
   } catch {
@@ -111,10 +111,9 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     setActionStudentId("");
     setMapMode(openSeating || snapshot?.classRoom.settings.layout === "map");
     const orientation = seatingOrientation();
-    const savedView = snapshot ? savedSeatingView(snapshot.classRoom.id, orientation) : { fit: true, scale: 1 };
     setMapOrientation(orientation);
-    setMapScale(savedView.scale);
-    setFitMap(savedView.fit);
+    setMapScale(1);
+    setFitMap(true);
     const savedDensity = snapshot
       ? localStorage.getItem(`roster-density:${snapshot.classRoom.id}`)
       : null;
@@ -125,11 +124,12 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     );
   }, [snapshot?.classRoom.id, initialAttendance, initialPeriodId]);
   useEffect(() => {
-    if (!snapshot) return;
+    const classId = snapshot?.classRoom.id;
+    if (!classId) return;
     const restoreOrientationView = () => {
       const orientation = seatingOrientation();
       setMapOrientation(orientation);
-      const savedView = savedSeatingView(snapshot.classRoom.id, orientation);
+      const savedView = savedSeatingView(classId, orientation);
       setMapScale(savedView.scale);
       setFitMap(savedView.fit);
     };
@@ -449,9 +449,7 @@ export function Live({ initialPeriodId = "", initialAttendance = false, onBack }
     const next = !mapMode;
     setMapMode(next);
     if (next) {
-      const savedView = savedSeatingView(snapshot.classRoom.id, mapOrientation);
-      setMapScale(savedView.scale);
-      setFitMap(savedView.fit);
+      setFitMap(true);
     }
     void save(async () =>
       setSnapshot(
