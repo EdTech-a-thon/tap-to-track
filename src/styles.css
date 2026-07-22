@@ -2328,6 +2328,21 @@ textarea {
 .bulk-note { display: grid; gap: .25rem; width: 100%; font-size: .8rem; font-weight: 800; }
 .bulk-note textarea, .assessment-note textarea { width: 100%; resize: vertical; border: 1px solid #7995a8; border-radius: 8px; padding: .45rem; font: inherit; }
 .bulk-assignment-result { justify-content: space-between; color: #174f3b; border-color: #8abca0; background: #e3f2e8; font-size: .82rem; font-weight: 700; }
+.individual-assessment-rail {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 35;
+  width: min(480px, calc(100vw - 2rem));
+  padding: .7rem;
+  border: 1px solid #b8c8c1;
+  border-radius: 12px;
+  background: #fffdf8;
+  box-shadow: 0 10px 30px #173f3528;
+}
+.individual-assessment-heading { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: 0 .15rem .3rem; }
+.individual-assessment-heading .text-button { min-height: 36px; }
+.individual-assessment-rail .achievement-selector { margin: 0; border: 0; padding: 0; }
 .student-tile.is-selected {
   border: 4px double #204f70;
   box-shadow: 0 0 0 3px #8db4cd;

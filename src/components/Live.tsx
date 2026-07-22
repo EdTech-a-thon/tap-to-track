@@ -61,6 +61,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
   const [bulkTarget, setBulkTarget] = useState<Achievement>("meets");
   const [bulkNote, setBulkNote] = useState("");
   const [lastBulkAssignment, setLastBulkAssignment] = useState<{ skillId: string; learners: { studentId: string; achievement: Achievement; requiresSupport: boolean }[] }>();
+  const [assessmentSkillId, setAssessmentSkillId] = useState("");
   const [feedback, setFeedback] = useState<{
     studentId: string;
     type: "positive" | "redirect";
@@ -105,6 +106,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
     setSkillId("");
     setSkillStudentId("");
     setAssessmentStudentId("");
+    setAssessmentSkillId("");
     dispatchRapid({ type: "exit" });
     setBulkMode(false);
     setBulkSelectedIds(new Set());
@@ -159,6 +161,7 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
     dispatchRapid({ type: "exit" });
     setBulkMode(false);
     setAssessmentStudentId("");
+    setAssessmentSkillId("");
     setBulkSelectedIds(new Set());
     setLastBulkAssignment(undefined);
   }, [skillId, viewPeriodId, lens]);
@@ -462,10 +465,17 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
       dispatchRapid({ type: "apply", studentId: student.id, previousAchievement: previous.achievement, previousRequiresSupport: previous.requiresSupport });
       return;
     }
-    setAssessmentStudentId((current) => current === student.id ? "" : student.id);
+    if (assessmentStudentId === student.id && assessmentSkillId === skillId) {
+      setAssessmentStudentId("");
+      setAssessmentSkillId("");
+      return;
+    }
+    setAssessmentStudentId(student.id);
+    setAssessmentSkillId(skillId);
   };
   const beginBulkAssignment = () => {
     setAssessmentStudentId("");
+    setAssessmentSkillId("");
     dispatchRapid({ type: "exit" });
     setBulkMode(true);
     setBulkSelectedIds(new Set());
@@ -1017,20 +1027,19 @@ export function Live({ initialPeriodId = "", onBack }: { initialPeriodId?: strin
                       : undefined
                   }
                 />
-                {lens === "skills" && skillId && !selectedIsParent && assessmentStudentId === student.id && rapid.status !== "active" && (
-                  <AchievementSelector
-                    achievement={mastery!.achievement}
-                    requiresSupport={mastery!.requiresSupport}
-                    onAchievement={(achievement) => setAssessment(student, skillId, { achievement })}
-                    onSupport={(requiresSupport) => setAssessment(student, skillId, { requiresSupport })}
-                    onNote={(note) => setAssessment(student, skillId, { note })}
-                  />
-                )}
               </div>
             );
           }}
         </StudentGrid>
       )}
+      {lens === "skills" && assessmentSkillId && assessmentStudentId && rapid.status !== "active" && !bulkMode && (() => {
+        const student = activeStudents.find((item) => item.id === assessmentStudentId);
+        if (!student) return null;
+        const skill = snapshot.skills.find((item) => item.id === assessmentSkillId);
+        if (!skill) return null;
+        const mastery = masteryFor(student.id, assessmentSkillId);
+        return <section className="individual-assessment-rail" aria-label={`Assess ${student.displayName}`}><div className="individual-assessment-heading"><strong>Scoring {skill.label} for {student.displayName}</strong><button className="text-button" onClick={() => { setAssessmentStudentId(""); setAssessmentSkillId(""); }}>Close</button></div><AchievementSelector achievement={mastery.achievement} requiresSupport={mastery.requiresSupport} onAchievement={(achievement) => setAssessment(student, assessmentSkillId, { achievement })} onSupport={(requiresSupport) => setAssessment(student, assessmentSkillId, { requiresSupport })} onNote={(note) => setAssessment(student, assessmentSkillId, { note })} /></section>;
+      })()}
       {mapMode && !arranging && lens === "participation" && effectiveScale < 0.3 && actionStudentId && (() => {
         const student = activeStudents.find((item) => item.id === actionStudentId);
         if (!student) return null;
