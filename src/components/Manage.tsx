@@ -6,8 +6,9 @@ import { useApp } from "../state";
 import type { Skill } from "../types";
 import { ClassCalendar } from "./ClassCalendar";
 import { ClassSettings, Roster as ClassRoster, StudentAccess } from "./ClassAreas";
+import { Groups } from "./Groups";
 
-type ManageTab = "calendar" | "roster" | "skills" | "access" | "settings";
+type ManageTab = "calendar" | "roster" | "skills" | "groups" | "access" | "settings";
 
 export function Manage() {
   const { snapshot, setSnapshot } = useApp();
@@ -22,7 +23,7 @@ export function Manage() {
         </div>
       </div>
       <div className="subnav" role="tablist">
-        {(["calendar", "roster", "skills", "access", "settings"] as ManageTab[]).map(
+        {(["calendar", "roster", "skills", "groups", "access", "settings"] as ManageTab[]).map(
           (item) => (
             <button
               role="tab"
@@ -38,7 +39,8 @@ export function Manage() {
       </div>
       {tab === "calendar" && <ClassCalendar embedded />}
       {tab === "roster" && <ClassRoster />}
-      {tab === "skills" && <Skills />}
+       {tab === "skills" && <Skills />}
+       {tab === "groups" && <Groups />}
       {tab === "access" && <StudentAccess />}
       {tab === "settings" && <ClassSettings />}
     </section>
