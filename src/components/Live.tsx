@@ -1687,7 +1687,7 @@ function RequestRail() {
     if (!classId) return;
     const refreshRequests = () =>
       void dataStore.getSnapshot(classId, true).then(setSnapshot).catch(() => undefined);
-    const interval = window.setInterval(refreshRequests, 5_000);
+    const interval = window.setInterval(refreshRequests, 1_000);
     return () => window.clearInterval(interval);
   }, [classId]);
 
