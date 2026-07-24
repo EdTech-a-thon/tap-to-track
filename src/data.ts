@@ -181,6 +181,7 @@ class BrowserDataStore implements DataStore {
   private uploadCount = 0;
   private networkUnavailable = false;
   private reconcilePromises = new Map<string, Promise<ClassSnapshot>>();
+  private reconcileDirty = new Set<string>();
   private reconcileTimers = new Map<string, number>();
 
   async signIn(email: string, password: string, create = false) {
@@ -524,14 +525,21 @@ class BrowserDataStore implements DataStore {
 
   private async reconcile(classId: string) {
     const existing = this.reconcilePromises.get(classId);
-    if (existing) return existing;
+    // A refresh is already in flight. It may have read the server's list
+    // before the change that triggered this call was committed, so we can't
+    // just reuse it — mark the class dirty so the running pass fetches again.
+    if (existing) { this.reconcileDirty.add(classId); return existing; }
     const reconcile = (async () => {
-      await this.sync();
-       const authoritative = normalizeClassSnapshot(await request<ClassSnapshot>(`/classes/${classId}/snapshot`));
-      const changes = await db.outbox.orderBy("createdAt").toArray();
-      const value = reconcileOptimisticSnapshot(authoritative, changes, classId);
-      await db.snapshots.put({ classId, value, updatedAt: Date.now() });
-      this.emit(classId, value);
+      let value: ClassSnapshot;
+      do {
+        this.reconcileDirty.delete(classId);
+        await this.sync();
+        const authoritative = normalizeClassSnapshot(await request<ClassSnapshot>(`/classes/${classId}/snapshot`));
+        const changes = await db.outbox.orderBy("createdAt").toArray();
+        value = reconcileOptimisticSnapshot(authoritative, changes, classId);
+        await db.snapshots.put({ classId, value, updatedAt: Date.now() });
+        this.emit(classId, value);
+      } while (this.reconcileDirty.has(classId)); // a refresh landed mid-flight → fetch again
       return value;
     })();
     this.reconcilePromises.set(classId, reconcile);
