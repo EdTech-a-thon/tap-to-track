@@ -1,5 +1,17 @@
 # EdTech-a-thon Agent Instructions
 
+## Local development server coordination
+
+Multiple AI coding agents work in this workspace concurrently. Never start a web development server or PocketBase directly with `npm run dev`, `bun run dev`, `vite`, or `./pocketbase serve`. Hard-coded ports such as 8000 and 8090 are not safe for concurrent local work.
+
+Start both services through the workspace allocator while working from this project directory:
+
+```sh
+../scripts/agent-dev.mjs <project-directory>
+```
+
+The launcher leases unique ports, starts the project's local PocketBase when available, supplies the common PocketBase URL environment variables, and releases the leases when it exits. Keep it running while its child services are needed and stop it with Ctrl-C. Use `../scripts/agent-dev.mjs --list` to see live leases. If a task truly requires port 8000, ask the user first.
+
 This project is a prototype to be completed during the 3-day "EdTech-a-thon" event by a team with varying technical expertise. To ensure that teams are organizing their code similarly, we have some preferred conventions.
 
 - All code belongs in a git repo at `~/code` aka `/home/exedev/code`

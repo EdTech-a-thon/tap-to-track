@@ -1,10 +1,8 @@
 module.exports = {
   apps: [{
     name: "tap-to-track",
-    script: "node_modules/.bin/tsx",
-    args: "server/index.ts",
+    script: "build/index.js",
     cwd: __dirname,
-    env: { NODE_ENV: "production", PORT: "8000", DB_PATH: "./data/tap-to-track.db" },
-    env_file: ".env"
-  }]
+    env: { NODE_ENV: "production", HOST: "0.0.0.0", PORT: "8000" },
+  }],
 };

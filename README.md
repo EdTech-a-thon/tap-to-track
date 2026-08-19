@@ -1,51 +1,30 @@
 # Tap-to-Track
 
-Tap-to-Track is a touch-first classroom tool for attendance, participation, skills evidence, and quiet student requests. It is not a gradebook. Students are represented only by a teacher-chosen display name and constrained visual avatar.
+Tap-to-Track is a deliberately simple, touch-first classroom tool. Teachers can
+keep a class roster, mark attendance, and record positive participation or a
+redirect with one tap.
 
-## Features
+## What it includes
 
-- Isolated teacher accounts and independent classes
-- Fast attendance and participation tracking on one shared tile grid
-- Three-state skills checklists and progress matrix
-- Period history and CSV, Excel, and JSON exports
-- Student self check-in, color-coded requests, and optional self-only progress
-- Offline browser cache with queued changes
-- Installable PWA and real-time WebSocket updates
+- Multiple class rosters
+- Present and absent status
+- Large positive-participation and redirect buttons
+- A simple summary of who has participated today
+- Automatic saving on the current device
 
-## Database
+There are no accounts, grades, reports, or shared student data. Use first names,
+initials, or classroom nicknames rather than sensitive student information.
 
-PocketBase stores teacher accounts, classrooms, classroom records, and skill
-photos. The browser uses PocketBase directly; teacher ownership is enforced by
-collection API rules. Schema changes are committed in `pb_migrations/`, custom
-student access lives in `pb_hooks/`, and local data in `pb_data/` is never
-committed.
+## Development
 
-The flexible `class_records` collection holds students, periods, attendance,
-participation, skills, mastery, requests, groups, and timers. Its `kind` field
-identifies the record type and its `payload` contains the type-specific values.
-This keeps the prototype schema small while all records remain indexed and
-owned by one classroom.
-
-## Local development
-
-Requirements: Node 22+ or Bun 1.3+.
+Tap-to-Track uses SvelteKit and Bun.
 
 ```bash
-cp .env.example .env
 bun install
-./install-pocketbase.sh
 ../scripts/agent-dev.mjs /absolute/path/to/tap-to-track
 ```
 
-Run checks with `bun run test` and `bun run build`.
-
-The shared platform runs PocketBase and applies committed migrations
-automatically. `VITE_POCKETBASE_URL` is supplied for the browser in production.
-No database files or administrator credentials should be committed.
-
-## Privacy boundary
-
-Do not enter legal names, student emails, dates of birth, SIS identifiers, or other student PII. The roster template intentionally accepts only go-by display names and optional constrained avatars. Student routes return only the selected student's check-in, requests, and teacher-approved skill progress.
+Run checks with `bun run check` and create a production build with `bun run build`.
 
 ## License
 
