@@ -12,39 +12,36 @@ Tap-to-Track is a touch-first classroom tool for attendance, participation, skil
 - Offline browser cache with queued changes
 - Installable PWA and real-time WebSocket updates
 
+## Database
+
+PocketBase stores teacher accounts, classrooms, classroom records, and skill
+photos. The browser uses PocketBase directly; teacher ownership is enforced by
+collection API rules. Schema changes are committed in `pb_migrations/`, custom
+student access lives in `pb_hooks/`, and local data in `pb_data/` is never
+committed.
+
+The flexible `class_records` collection holds students, periods, attendance,
+participation, skills, mastery, requests, groups, and timers. Its `kind` field
+identifies the record type and its `payload` contains the type-specific values.
+This keeps the prototype schema small while all records remain indexed and
+owned by one classroom.
+
 ## Local development
 
-Requirements: Node 22+ or Bun 1.3+ and native build tools supported by `better-sqlite3`.
+Requirements: Node 22+ or Bun 1.3+.
 
 ```bash
 cp .env.example .env
 bun install
-bun run dev
+./install-pocketbase.sh
+../scripts/agent-dev.mjs /absolute/path/to/tap-to-track
 ```
 
 Run checks with `bun run test` and `bun run build`.
 
-## Production and self-hosting
-
-1. Point a public HTTPS domain at the host.
-2. Copy `.env.example` to `.env` and set a long random `SESSION_SECRET`.
-3. Set `BASE_URL` and `ALLOWED_ORIGINS` to the public HTTPS origin.
-4. Install dependencies and build with `bun install --frozen-lockfile && bun run build`.
-5. Install PM2 (`npm install --global pm2`), start with `pm2 start ecosystem.config.cjs`, then save the process list with `pm2 save`.
-6. Put an HTTPS reverse proxy in front of the configured `PORT`, preserving WebSocket upgrade headers and `X-Forwarded-Proto`.
-
-Environment variables:
-
-| Variable | Purpose |
-| --- | --- |
-| `PORT` | HTTP listener, defaults to 8000 |
-| `BASE_URL` | Canonical public URL, including HTTPS |
-| `ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the app |
-| `SESSION_SECRET` | At least 24 characters; signs cookies and student access |
-| `DB_PATH` | SQLite file location |
-| `NODE_ENV` | Use `production` to serve the built app and secure cookies |
-
-No secrets or database files should be committed. Back up both the SQLite file and teacher-generated JSON exports. Restart with `pm2 restart tap-to-track`; inspect status with `pm2 status`.
+The shared platform runs PocketBase and applies committed migrations
+automatically. `VITE_POCKETBASE_URL` is supplied for the browser in production.
+No database files or administrator credentials should be committed.
 
 ## Privacy boundary
 
