@@ -2,8 +2,6 @@ node_modules
 out
 dist
 data/
-pb_data/
-pocketbase
 coverage/
 *.db
 *.db-shm

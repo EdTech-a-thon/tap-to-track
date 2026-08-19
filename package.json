@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "db:install": "./install-pocketbase.sh",
+    "dev": "concurrently -k \"vite --host 0.0.0.0\" \"tsx watch server/index.ts\"",
     "build": "tsc -b && vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
     "test": "node node_modules/vitest/vitest.mjs run",
@@ -23,7 +22,6 @@
     "fastify": "latest",
     "nanoid": "latest",
     "papaparse": "latest",
-    "pocketbase": "^0.26.8",
     "qrcode": "latest",
     "react": "18.3.1",
     "react-dom": "18.3.1",
