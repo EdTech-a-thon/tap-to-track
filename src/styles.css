@@ -17,7 +17,7 @@ nav { display: flex; gap: .25rem; margin-left: auto; } nav a { display: grid; pl
 .tap-actions { display: grid; grid-template-columns: 2fr 1fr; min-height: 82px; } .tap-actions button { border: 0; font-weight: 700; } .tap-actions strong { display: block; font-size: 1.35rem; } .positive { color: #fff; background: #277458; } .positive:hover { background: #1f6149; } .redirect { color: #5c4210; background: #f2ca7b; }
 .attendance { width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; color: #536b63; font-size: .78rem; font-weight: 700; } .student-card.absent { opacity: .62; filter: grayscale(.65); }
 .empty { padding: 4rem 1rem; text-align: center; border: 1px dashed #aeb7ad; border-radius: 18px; } .empty > span { font-size: 2rem; } .empty p { color: #657770; }
-.setup-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 1rem; } .panel { padding: 1.25rem; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); } .panel label, .panel label small { display: block; } .panel label { margin: 1rem 0; font-weight: 700; } .panel label small { margin: .2rem 0 .5rem; color: #657770; font-weight: 400; }
+.setup-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: 1rem; align-items: start; } .setup-grid .wide { grid-column: 1 / -1; } .panel { padding: 1.25rem; border: 1px solid var(--line); border-radius: 17px; background: var(--paper); } .panel label, .panel label small { display: block; } .panel label { margin: 1rem 0; font-weight: 700; } .panel label small { margin: .2rem 0 .5rem; color: #657770; font-weight: 400; }
 textarea, input { width: 100%; margin-top: .45rem; padding: .75rem; border: 1px solid #bbb5a8; border-radius: 10px; background: white; } textarea { resize: vertical; }
 .roster-list { margin: 1.5rem 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); } .roster-list li { display: flex; align-items: center; gap: .7rem; min-height: 58px; border-bottom: 1px solid var(--line); } .roster-list li strong { margin-right: auto; } .roster-list li button { border: 0; background: transparent; color: #8a4038; font-weight: 700; }
 .toast { position: fixed; right: 1rem; bottom: 1rem; display: flex; align-items: center; gap: .8rem; max-width: calc(100vw - 2rem); padding: .75rem 1rem; border-radius: 12px; color: white; background: #173c33; box-shadow: 0 8px 28px #0003; } .toast button { min-height: 30px; border: 0; color: white; background: transparent; font-size: 1.3rem; }
@@ -39,7 +39,6 @@ form .primary { width: 100%; }
 .behavior-list button { border: 0; background: transparent; color: #8a4038; font-weight: 700; } .nudge { color: #536b63; min-width: 34px; }
 .check { display: flex; align-items: center; gap: .6rem; margin: 0 !important; font-weight: 600 !important; } .check input { width: auto; min-height: 22px; margin: 0; }
 .swatch { width: 18px; height: 18px; border-radius: 5px; }
-.setup-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }
 .chart-page { width: min(1600px, 100%); }
 .chart-bar { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .modes { display: flex; gap: .25rem; padding: .25rem; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
@@ -96,3 +95,10 @@ th { position: sticky; top: 0; background: #fffdf8; } th button { display: flex;
 td.num, th.num { text-align: right; } th.num button { justify-content: flex-end; width: 100%; }
 td.num { font-variant-numeric: tabular-nums; } tbody tr:last-child td { border-bottom: 0; }
 tr.quiet td { color: #8b9a94; } tr.quiet strong { color: #6c7d76; }
+.class-rail { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-bottom: 1rem; padding: .5rem; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+.class-tabs { display: flex; flex-wrap: wrap; gap: .3rem; } .class-tab { padding: 0 1rem; border: 1px solid transparent; border-radius: 10px; background: transparent; font-weight: 700; } .class-tab:hover { border-color: var(--line); } .class-tab.active { color: white; background: var(--green); border-color: var(--green); }
+.add-class { display: flex; align-items: center; gap: .5rem; margin-left: auto; } .add-class input { width: 10rem; margin: 0; }
+.panel-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; } .panel-head label { flex: 1; max-width: 18rem; margin: 0 !important; } .danger { color: #8a4038; }
+.count { margin: 1.25rem 0 0; font-size: 1.1rem; } .count + .roster-scroll .roster-list { margin-top: .5rem; }
+.roster-scroll { max-height: 24rem; overflow: auto; } .roster-scroll .roster-list li:last-child { border-bottom: 0; }
+.start { width: min(460px, 100%); }
