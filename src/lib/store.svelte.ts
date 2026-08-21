@@ -1,5 +1,6 @@
 import { pb } from "$lib/pb";
 import { auth } from "$lib/auth.svelte";
+import { seatStudent, unseatStudent } from "$lib/domain/assignment";
 import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
 import type { Behavior, BehaviorMode, Class, Seat, Student } from "$lib/domain/types";
 
@@ -124,8 +125,13 @@ class Store {
   }
 
   async deleteSeat(id: string) {
+    const occupants = this.students.filter((student) => student.seatId === id);
     await pb.collection("seats").delete(id);
     this.seats = this.seats.filter((seat) => seat.id !== id);
+    this.students = this.students.map((student) =>
+      student.seatId === id ? { ...student, seatId: null } : student);
+    await Promise.all(occupants.map((student) =>
+      pb.collection("students").update(student.id, { seat: "" })));
   }
 
   async addStudents(classId: string, names: string[]) {
@@ -134,6 +140,28 @@ class Store {
     this.students = [...this.students, ...created.map((r) => ({
       id: r.id, classId, name: r.name, seatId: null,
     }))];
+  }
+
+  /** Seats a Student, swapping with the occupant if there is one. */
+  async seatStudent(studentId: string, seatId: string) {
+    const before = this.students;
+    const after = seatStudent(before, studentId, seatId);
+    if (after === before) return;
+    this.students = after;
+    await this.persistSeats(before, after);
+  }
+
+  async unseatStudent(studentId: string) {
+    const before = this.students;
+    const after = unseatStudent(before, studentId);
+    this.students = after;
+    await this.persistSeats(before, after);
+  }
+
+  private async persistSeats(before: Student[], after: Student[]) {
+    const moved = after.filter((student, index) => student.seatId !== before[index]?.seatId);
+    await Promise.all(moved.map((student) =>
+      pb.collection("students").update(student.id, { seat: student.seatId ?? "" })));
   }
 
   async renameStudent(id: string, name: string) {

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import SeatCanvas from "$lib/components/SeatCanvas.svelte";
+  import SeatingMode from "$lib/components/SeatingMode.svelte";
+  import { seatDeletionImpact } from "$lib/domain/assignment";
   import { nextSeatSpot } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
 
@@ -18,8 +20,14 @@
     store.addSeat(spot.x, spot.y);
   }
 
+  /** The Layout is shared, so one deletion can unseat students in several Classes. */
   function deleteSelected() {
     if (!selectedSeatId) return;
+    const impact = seatDeletionImpact(store.students, selectedSeatId);
+    const warning = impact.classCount
+      ? `This desk is in use by ${impact.students.length} student${impact.students.length === 1 ? "" : "s"} across ${impact.classCount} class${impact.classCount === 1 ? "" : "es"}. Deleting it leaves them without a seat. Continue?`
+      : "Delete this desk?";
+    if (!confirm(warning)) return;
     store.deleteSeat(selectedSeatId);
     selectedSeatId = null;
   }
@@ -31,6 +39,14 @@
       <button class:active={mode === "layout"} onclick={() => (mode = "layout")}>Layout</button>
       <button class:active={mode === "assign"} onclick={() => (mode = "assign")}>Seating</button>
     </div>
+
+    {#if store.classes.length}
+      <label class="class-picker">Class
+        <select bind:value={store.activeClassId}>
+          {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
+        </select>
+      </label>
+    {/if}
 
     {#if mode === "layout"}
       <button class="secondary" onclick={addSeat}>Add a desk</button>
@@ -66,7 +82,21 @@
         onSeatClick={(seat) => (selectedSeatId = seat.id === selectedSeatId ? null : seat.id)}
       />
     {/if}
+  {:else if !store.activeClass}
+    <section class="empty">
+      <span>✦</span>
+      <h2>No classes yet</h2>
+      <p>Make a class and add some students, then come back to seat them.</p>
+      <a class="primary" href="/setup">Go to Setup</a>
+    </section>
+  {:else if !store.seats.length}
+    <section class="empty">
+      <span>✦</span>
+      <h2>No desks yet</h2>
+      <p>Draw your room in Layout first, then you can seat students in it.</p>
+      <button class="primary" onclick={() => (mode = "layout")}>Go to Layout</button>
+    </section>
   {:else}
-    <section class="empty"><span>✦</span><h2>Seating arrives next</h2></section>
+    <SeatingMode classId={store.activeClass.id} />
   {/if}
 </main>

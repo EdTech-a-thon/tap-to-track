@@ -53,6 +53,7 @@
     {@const label = seatLabel?.(seat)}
     <button
       class="seat"
+      data-seat-id={seat.id}
       class:dragging={dragging?.id === seat.id}
       class:selected={selectedId === seat.id}
       class:faded={label?.faded}
