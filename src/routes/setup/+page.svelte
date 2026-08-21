@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import Behaviors from "$lib/components/Behaviors.svelte";
+  import ClassBehaviors from "$lib/components/ClassBehaviors.svelte";
   import ImportRoster from "$lib/components/ImportRoster.svelte";
   import { store } from "$lib/store.svelte";
 
@@ -74,6 +76,16 @@
         <label>Add a class <input bind:value={newClassName} placeholder="Period 2" /></label>
         <button class="primary" disabled={!newClassName.trim()} onclick={addClass}>Add class</button>
       </section>
+
+      <section class="panel">
+        <Behaviors />
+      </section>
+
+      {#if store.activeClass}
+        <section class="panel">
+          <ClassBehaviors classId={store.activeClass.id} />
+        </section>
+      {/if}
     </div>
   {/if}
 </main>

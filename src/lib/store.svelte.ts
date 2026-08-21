@@ -1,6 +1,7 @@
 import { pb } from "$lib/pb";
 import { auth } from "$lib/auth.svelte";
-import type { Behavior, Class, Seat, Student } from "$lib/domain/types";
+import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
+import type { Behavior, BehaviorMode, Class, Seat, Student } from "$lib/domain/types";
 
 const owner = () => auth.teacher?.id ?? "";
 
@@ -35,13 +36,66 @@ class Store {
       id: r.id, name: r.name, color: r.color, mode: r.mode, position: r.position ?? 0,
     }));
     this.seats = seats.map((r) => ({ id: r.id, x: r.x ?? 0, y: r.y ?? 0 }));
+    if (!this.behaviors.length) await this.seedDefaultBehaviors();
     if (!this.activeClassId) this.activeClassId = this.classes[0]?.id ?? null;
     this.loaded = true;
   }
 
+  /** A teacher who has configured nothing still gets a usable popup. */
+  private async seedDefaultBehaviors() {
+    const created = await Promise.all(DEFAULT_BEHAVIORS.map((behavior, position) =>
+      pb.collection("behaviors").create({ ...behavior, position, owner: owner() })));
+    this.behaviors = created.map((r) => ({
+      id: r.id, name: r.name, color: r.color, mode: r.mode, position: r.position,
+    }));
+  }
+
+  async addBehavior(name: string, color: string, mode: BehaviorMode) {
+    const position = this.behaviors.length;
+    const record = await pb.collection("behaviors").create({ name, color, mode, position, owner: owner() });
+    this.behaviors = [...this.behaviors, { id: record.id, name, color, mode, position }];
+  }
+
+  async updateBehavior(id: string, change: Partial<Omit<Behavior, "id">>) {
+    await pb.collection("behaviors").update(id, change);
+    this.behaviors = this.behaviors.map((b) => (b.id === id ? { ...b, ...change } : b));
+  }
+
+  async deleteBehavior(id: string) {
+    await pb.collection("behaviors").delete(id);
+    this.behaviors = this.behaviors.filter((behavior) => behavior.id !== id);
+    this.classes = this.classes.map((cls) => ({
+      ...cls, behaviorIds: cls.behaviorIds.filter((behaviorId) => behaviorId !== id),
+    }));
+  }
+
+  /** Moves a Behavior up or down the list, which is the order the popup uses. */
+  async moveBehavior(id: string, direction: -1 | 1) {
+    const ordered = [...this.behaviors].sort((a, b) => a.position - b.position);
+    const from = ordered.findIndex((behavior) => behavior.id === id);
+    const to = from + direction;
+    if (from === -1 || to < 0 || to >= ordered.length) return;
+    [ordered[from], ordered[to]] = [ordered[to], ordered[from]];
+    this.behaviors = ordered.map((behavior, position) => ({ ...behavior, position }));
+    await Promise.all(this.behaviors.map((behavior) =>
+      pb.collection("behaviors").update(behavior.id, { position: behavior.position })));
+  }
+
+  /** Turns a Behavior on or off for one Class. Analytics still counts it either way. */
+  async toggleClassBehavior(classId: string, behaviorId: string) {
+    const cls = this.classes.find((item) => item.id === classId);
+    if (!cls) return;
+    const behaviorIds = cls.behaviorIds.includes(behaviorId)
+      ? cls.behaviorIds.filter((id) => id !== behaviorId)
+      : [...cls.behaviorIds, behaviorId];
+    await pb.collection("classes").update(classId, { behaviors: behaviorIds });
+    this.classes = this.classes.map((item) => (item.id === classId ? { ...item, behaviorIds } : item));
+  }
+
   async addClass(name: string) {
-    const record = await pb.collection("classes").create({ name, owner: owner(), behaviors: [] });
-    this.classes = [...this.classes, { id: record.id, name, behaviorIds: [] }].sort((a, b) =>
+    const behaviorIds = this.behaviors.map((behavior) => behavior.id);
+    const record = await pb.collection("classes").create({ name, owner: owner(), behaviors: behaviorIds });
+    this.classes = [...this.classes, { id: record.id, name, behaviorIds }].sort((a, b) =>
       a.name.localeCompare(b.name));
     this.activeClassId ??= record.id;
     return record.id;

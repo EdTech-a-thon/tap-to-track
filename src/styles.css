@@ -31,3 +31,12 @@ form .primary { width: 100%; }
 .roster-list li input { margin: 0; flex: 1; min-width: 0; border-color: transparent; background: transparent; }
 .roster-list li input:hover, .roster-list li input:focus { border-color: #bbb5a8; background: white; }
 .roster-list li.clash { background: #fdf3ee; } .flag { color: #8a4038; font-size: .78rem; font-weight: 700; }
+.behavior-list { margin: 1rem 0 0; padding: 0; list-style: none; } .behavior-list li { display: flex; align-items: center; gap: .5rem; min-height: 56px; border-bottom: 1px solid var(--line); }
+.behavior-list li > input[type="text"], .behavior-list li > input:not([type]) { flex: 1; min-width: 6rem; margin: 0; border-color: transparent; background: transparent; }
+.behavior-list li > input:hover, .behavior-list li > input:focus { border-color: #bbb5a8; background: white; }
+.behavior-list input[type="color"] { width: 38px; min-width: 38px; height: 38px; margin: 0; padding: 2px; border-radius: 9px; }
+.behavior-list .mode { margin: 0; } .behavior-list select { max-width: 12rem; padding: 0 .5rem; border: 1px solid var(--line); border-radius: 9px; background: white; }
+.behavior-list button { border: 0; background: transparent; color: #8a4038; font-weight: 700; } .nudge { color: #536b63; min-width: 34px; }
+.check { display: flex; align-items: center; gap: .6rem; margin: 0 !important; font-weight: 600 !important; } .check input { width: auto; min-height: 22px; margin: 0; }
+.swatch { width: 18px; height: 18px; border-radius: 5px; }
+.setup-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }
