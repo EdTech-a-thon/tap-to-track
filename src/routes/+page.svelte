@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import SeatCanvas from "$lib/components/SeatCanvas.svelte";
   import SeatingMode from "$lib/components/SeatingMode.svelte";
+  import OutboxBadge from "$lib/components/OutboxBadge.svelte";
   import SessionBar from "$lib/components/SessionBar.svelte";
   import TrackingMode from "$lib/components/TrackingMode.svelte";
   import UndoToast from "$lib/components/UndoToast.svelte";
@@ -83,6 +84,7 @@
         <SessionBar />
         <button class="secondary" onclick={enterTeaching}>Full screen</button>
       {:else if store.activeClass}
+        <OutboxBadge />
         <button class="primary" onclick={startClass}>Start class</button>
       {/if}
     </div>

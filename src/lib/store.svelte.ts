@@ -1,4 +1,5 @@
 import { pb } from "$lib/pb";
+import { newId, outbox } from "$lib/outbox.svelte";
 import { auth } from "$lib/auth.svelte";
 import { seatStudent, unseatStudent } from "$lib/domain/assignment";
 import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
@@ -32,6 +33,7 @@ class Store {
 
   async load() {
     if (!owner()) return;
+    outbox.start();
     const [classes, students, behaviors, seats, sessions, taps] = await Promise.all([
       pb.collection("classes").getFullList({ sort: "name" }),
       pb.collection("students").getFullList({ sort: "name" }),
@@ -190,15 +192,19 @@ class Store {
       return "removed" as const;
     }
 
-    const record = await pb.collection("taps").create({
-      session: session.id, student: studentId, behavior: behavior.id, owner: owner(),
+    // Optimistic: the count moves now, the write goes through the outbox.
+    const id = newId();
+    outbox.push({
+      kind: "create",
+      id,
+      data: { session: session.id, student: studentId, behavior: behavior.id, owner: owner() },
     });
     this.taps = [...this.taps, {
-      id: record.id, sessionId: session.id, studentId,
-      behaviorId: behavior.id, createdAt: record.created,
+      id, sessionId: session.id, studentId,
+      behaviorId: behavior.id, createdAt: new Date().toISOString(),
     }];
     this.lastTap = {
-      id: record.id,
+      id,
       studentName: this.students.find((student) => student.id === studentId)?.name ?? "",
       behaviorName: behavior.name,
     };
@@ -209,7 +215,8 @@ class Store {
   async removeTap(id: string) {
     this.taps = this.taps.filter((tap) => tap.id !== id);
     if (this.lastTap?.id === id) this.lastTap = null;
-    await pb.collection("taps").delete(id);
+    if (outbox.cancelCreate(id)) return; // Never sent, so nothing to delete.
+    outbox.push({ kind: "delete", id });
   }
 
   async addStudents(classId: string, names: string[]) {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import OutboxBadge from "$lib/components/OutboxBadge.svelte";
   import { formatElapsed } from "$lib/domain/sessions";
   import { store } from "$lib/store.svelte";
 
@@ -20,6 +21,7 @@
     <span class="dot" aria-hidden="true"></span>
     <strong>{className}</strong>
     <span class="clock">{elapsed}</span>
+    <OutboxBadge />
     <button class="secondary" onclick={() => store.endSession(session.id)}>End class</button>
   </div>
 {/if}
