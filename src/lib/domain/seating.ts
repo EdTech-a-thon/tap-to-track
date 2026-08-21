@@ -32,3 +32,29 @@ export function layoutExtent(seats: Seat[]): { width: number; height: number } {
     height: Math.max(step * 4, ...seats.map((seat) => seat.y + SEAT_SIZE + GRID * 2)),
   };
 }
+
+/** The tight box the desks sit in, so a room can be centred and grown to fill a screen. */
+export function seatBounds(seats: Seat[]): { x: number; y: number; width: number; height: number } {
+  if (!seats.length) return { x: 0, y: 0, width: SEAT_SIZE, height: SEAT_SIZE };
+  const x = Math.min(...seats.map((seat) => seat.x));
+  const y = Math.min(...seats.map((seat) => seat.y));
+  const width = Math.max(...seats.map((seat) => seat.x)) + SEAT_SIZE - x;
+  const height = Math.max(...seats.map((seat) => seat.y)) + SEAT_SIZE - y;
+  return { x, y, width, height };
+}
+
+/**
+ * How much to grow the room to fill the space it is given: the same in both directions, so
+ * the desks keep their shape and their spacing, and never so large that one desk fills a wall.
+ */
+export function fitScale(
+  room: { width: number; height: number },
+  box: { width: number; height: number },
+  pad = GRID,
+  max = 3,
+): number {
+  const width = box.width - pad * 2;
+  const height = box.height - pad * 2;
+  if (width <= 0 || height <= 0 || !room.width || !room.height) return 1;
+  return Math.min(width / room.width, height / room.height, max);
+}

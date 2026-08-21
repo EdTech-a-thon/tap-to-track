@@ -72,6 +72,7 @@
   </div>
 
   <SeatCanvas
+    fill
     seatLabel={(seat) => {
       const student = occupant.get(seat.id);
       const look = shade(student);

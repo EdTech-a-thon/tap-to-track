@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { GRID, SEAT_SIZE, layoutExtent, nextSeatSpot, placeSeat, snap } from "./seating";
+import { GRID, SEAT_SIZE, fitScale, layoutExtent, nextSeatSpot, placeSeat, seatBounds, snap } from "./seating";
 import type { Seat } from "./types";
 
 const seat = (id: string, x: number, y: number): Seat => ({ id, x, y });
@@ -40,4 +40,23 @@ test("the room is at least a screenful, and grows to hold the furthest Seat", ()
   const empty = layoutExtent([]);
   expect(empty.width).toBeGreaterThan(0);
   expect(layoutExtent([seat("a", 2000, 30)]).width).toBeGreaterThan(2000);
+});
+
+test("the desks' own box ignores the empty floor around them", () => {
+  expect(seatBounds([seat("a", 100, 60), seat("b", 300, 60)]))
+    .toEqual({ x: 100, y: 60, width: 200 + SEAT_SIZE, height: SEAT_SIZE });
+});
+
+test("a room grows to fill its space by the tighter of the two directions", () => {
+  const room = { width: 400, height: 200 };
+  expect(fitScale(room, { width: 840, height: 440 }, GRID)).toBe(2);
+  expect(fitScale(room, { width: 2040, height: 440 }, GRID)).toBe(2);
+});
+
+test("a room in a space too small to measure is left at its own size", () => {
+  expect(fitScale({ width: 400, height: 200 }, { width: 0, height: 0 })).toBe(1);
+});
+
+test("one lonely desk does not swell to fill a wall", () => {
+  expect(fitScale({ width: SEAT_SIZE, height: SEAT_SIZE }, { width: 4000, height: 4000 })).toBe(3);
 });
