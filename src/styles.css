@@ -26,3 +26,8 @@ textarea, input { width: 100%; margin-top: .45rem; padding: .75rem; border: 1px 
 .linkish { border: 0; background: transparent; color: var(--green); font-weight: 700; text-decoration: underline; }
 .error { color: #8a4038; font-weight: 600; }
 form .primary { width: 100%; }
+.hint { color: #657770; font-size: .92rem; } .row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.filepick { font-weight: 700; font-size: .9rem; } .filepick input { margin-top: .3rem; border: 0; padding: 0; background: transparent; }
+.roster-list li input { margin: 0; flex: 1; min-width: 0; border-color: transparent; background: transparent; }
+.roster-list li input:hover, .roster-list li input:focus { border-color: #bbb5a8; background: white; }
+.roster-list li.clash { background: #fdf3ee; } .flag { color: #8a4038; font-size: .78rem; font-weight: 700; }
