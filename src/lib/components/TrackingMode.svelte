@@ -5,6 +5,8 @@
   import { unseatedIn } from "$lib/domain/assignment";
   import { seatShade } from "$lib/domain/highlight";
   import { store } from "$lib/store.svelte";
+  import SessionBar from "$lib/components/SessionBar.svelte";
+  import { leaveTeaching, ui } from "$lib/ui.svelte";
   import type { Student } from "$lib/domain/types";
 
   let { classId }: { classId: string } = $props();
@@ -35,6 +37,11 @@
     else open = student;
   }
 
+  /** An invisible exit strands a teacher in front of thirty children. Escape always works. */
+  function onKey(event: KeyboardEvent) {
+    if (event.key === "Escape" && ui.teaching) leaveTeaching();
+  }
+
   async function startAndOpen() {
     const student = askingToStart!;
     askingToStart = null;
@@ -50,8 +57,14 @@
   }
 </script>
 
-<div class="tracking">
+<svelte:window onkeydown={onKey} />
+
+<div class="tracking" class:teaching={ui.teaching}>
   <div class="tracking-bar">
+    {#if ui.teaching}
+      <SessionBar compact />
+      <button class="leave" aria-label="Leave full screen" onclick={leaveTeaching}>×</button>
+    {/if}
     <HighlightPicker {classId} bind:value={
       () => highlightId,
       (next) => { highlightId = next; remember(next); }

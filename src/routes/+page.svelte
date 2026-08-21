@@ -8,6 +8,7 @@
   import { seatDeletionImpact } from "$lib/domain/assignment";
   import { nextSeatSpot } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
+  import { enterTeaching, leaveTeaching, ui } from "$lib/ui.svelte";
 
   type Mode = "track" | "seating" | "layout";
   let mode: Mode = $state("track");
@@ -15,6 +16,19 @@
   let selectedSeatId = $state<string | null>(null);
 
   onMount(() => store.load());
+
+  // Ending a class — or a forgotten one being auto-closed — drops out of Teaching mode.
+  $effect(() => {
+    if (ui.teaching && !store.openSession) leaveTeaching();
+  });
+
+  /** Starting a class is the moment the room should fill the screen. */
+  async function startClass() {
+    if (!store.activeClass) return;
+    await store.startSession(store.activeClass.id);
+    mode = "track";
+    await enterTeaching();
+  }
 
   let selectedSeat = $derived(store.seats.find((seat) => seat.id === selectedSeatId));
 
@@ -37,6 +51,7 @@
 </script>
 
 <main class="page chart-page">
+  {#if !ui.teaching}
   <section class="chart-bar">
     <div class="modes" role="group" aria-label="Chart mode">
       <button class:active={mode === "track"} onclick={() => (mode = "track")}>Teaching</button>
@@ -66,13 +81,13 @@
     <div class="bar-end">
       {#if store.openSession}
         <SessionBar />
+        <button class="secondary" onclick={enterTeaching}>Full screen</button>
       {:else if store.activeClass}
-        <button class="primary" onclick={() => store.startSession(store.activeClass.id)}>
-          Start class
-        </button>
+        <button class="primary" onclick={startClass}>Start class</button>
       {/if}
     </div>
   </section>
+  {/if}
 
   {#if !store.loaded}
     <p class="hint">Opening your classroom…</p>
