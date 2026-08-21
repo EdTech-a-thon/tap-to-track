@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "start": "node build",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "latest",
@@ -20,6 +21,7 @@
     "svelte": "latest",
     "svelte-check": "latest",
     "typescript": "~6.0.0",
-    "vite": "latest"
+    "vite": "latest",
+    "vitest": "^4.1.11"
   }
 }
