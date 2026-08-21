@@ -193,9 +193,10 @@ screen as a CSV.
   per teacher, per ADR 0002.
 - **`behaviors`** — name, colour, mode (`tally` or `toggle`), sort order, owner.
 - **`sessions`** — a relation to one Class, opened-at, ended-at (empty while open), owner.
-- **`taps`** — relations to one Session, one Student and one Behavior, plus the built-in
-  creation timestamp, owner. Append-only in normal use; rows are deleted only by Undo
-  and by un-toggling.
+- **`taps`** — relations to one Session, one Student and one Behavior, an `at` timestamp,
+  owner. Append-only in normal use; rows are deleted only by Undo and by un-toggling.
+  The timestamp is stamped by the app rather than by the database: a Tap belongs to the
+  moment the teacher pressed the button, not to whenever the outbox got it through.
 
 ### Layout and Assignment
 

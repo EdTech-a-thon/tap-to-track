@@ -40,7 +40,7 @@ class Store {
       pb.collection("behaviors").getFullList({ sort: "position" }),
       pb.collection("seats").getFullList(),
       pb.collection("sessions").getFullList({ sort: "-openedAt" }),
-      pb.collection("taps").getFullList({ sort: "created" }),
+      pb.collection("taps").getFullList({ sort: "at" }),
     ]);
     this.classes = classes.map((r) => ({ id: r.id, name: r.name, behaviorIds: r.behaviors ?? [] }));
     this.students = students.map((r) => ({
@@ -56,7 +56,7 @@ class Store {
     }));
     this.taps = taps.map((r) => ({
       id: r.id, sessionId: r.session, studentId: r.student,
-      behaviorId: r.behavior, createdAt: r.created,
+      behaviorId: r.behavior, createdAt: r.at,
     }));
     if (!this.behaviors.length) await this.seedDefaultBehaviors();
     if (!this.activeClassId) this.activeClassId = this.classes[0]?.id ?? null;
@@ -194,14 +194,16 @@ class Store {
 
     // Optimistic: the count moves now, the write goes through the outbox.
     const id = newId();
+    // The app stamps the time itself: a queued Tap belongs to the moment it was pressed,
+    // not to whenever the network let it through.
+    const at = new Date().toISOString();
     outbox.push({
       kind: "create",
       id,
-      data: { session: session.id, student: studentId, behavior: behavior.id, owner: owner() },
+      data: { session: session.id, student: studentId, behavior: behavior.id, at, owner: owner() },
     });
     this.taps = [...this.taps, {
-      id, sessionId: session.id, studentId,
-      behaviorId: behavior.id, createdAt: new Date().toISOString(),
+      id, sessionId: session.id, studentId, behaviorId: behavior.id, createdAt: at,
     }];
     this.lastTap = {
       id,

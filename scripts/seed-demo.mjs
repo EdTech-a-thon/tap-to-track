@@ -91,8 +91,10 @@ for (let daysAgo = 40; daysAgo >= 0; daysAgo -= 2) {
     const roster = students.filter((student) => student.class === cls.id);
     for (const student of roster) {
       for (let n = 0; n < Math.floor(Math.random() * 3); n += 1) {
+        // Stamped with the lesson's own date, so the week / month / all-time windows differ.
+        const at = new Date(opened.getTime() + Math.random() * 45 * 60_000).toISOString();
         await post("/api/collections/taps/records", {
-          session: session.id, student: student.id, behavior: pick(tallying).id, owner,
+          session: session.id, student: student.id, behavior: pick(tallying).id, at, owner,
         }, token);
         tapCount += 1;
       }
