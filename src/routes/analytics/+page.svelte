@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { aggregate, sortRows, type SortKey, type Window } from "$lib/domain/analytics";
+  import { aggregate, sortRows, toCsv, type SortKey, type Window } from "$lib/domain/analytics";
   import { store } from "$lib/store.svelte";
 
-  let window: Window = $state("week");
+  let range: Window = $state("week");
   let behaviorIds = $state<string[]>([]);
   let classIds = $state<string[]>([]);
   let sort = $state<SortKey>({ column: "student", descending: false });
@@ -28,7 +28,7 @@
     classes: store.classes,
     behaviorIds: columns.map((behavior) => behavior.id),
     classIds,
-    window,
+    window: range,
     now: Date.now(),
   }), sort));
 
@@ -40,6 +40,18 @@
     sort = sort.column === column
       ? { column, descending: !sort.descending }
       : { column, descending: column !== "student" && column !== "class" };
+  }
+
+  /** Exports the table exactly as shown, so what gets shared matches what was seen. */
+  function exportCsv() {
+    const csv = toCsv(rows, columns);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `tap-to-track-${range}-${stamp}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   const windows: { value: Window; label: string }[] = [
@@ -56,6 +68,11 @@
       <h1>Analytics</h1>
       <p>Every tap you've recorded, counted up.</p>
     </div>
+    {#if store.loaded && store.classes.length}
+      <button class="secondary" disabled={!rows.length} onclick={exportCsv}>
+        Download this table
+      </button>
+    {/if}
   </section>
 
   {#if !store.loaded || !started}
@@ -68,7 +85,7 @@
         <h2>When</h2>
         <div class="modes">
           {#each windows as option}
-            <button class:active={window === option.value} onclick={() => (window = option.value)}>
+            <button class:active={range === option.value} onclick={() => (range = option.value)}>
               {option.label}
             </button>
           {/each}
