@@ -18,7 +18,8 @@
 <h2>What you track</h2>
 <p class="hint">
   These are the buttons that appear when you tap a student. Up to {BEHAVIOR_LIMIT}, so the
-  popup stays fast enough to use without reading it.
+  popup stays fast enough to use without reading it. "Away" marks someone as out of the
+  room — their desk turns grey and nothing else can be recorded for them.
 </p>
 
 <ul class="behavior-list">
@@ -34,6 +35,11 @@
           <option value="tally">Counts every tap</option>
           <option value="toggle">On or off for the lesson</option>
         </select>
+      </label>
+      <label class="check away" title="While this is on, the student is out of the room and can't be recorded for anything else">
+        <input type="checkbox" checked={behavior.away} disabled={behavior.mode !== "toggle"}
+          onchange={(event) => store.updateBehavior(behavior.id, { away: event.currentTarget.checked })} />
+        Away
       </label>
       <button class="nudge" disabled={index === 0} aria-label="Move {behavior.name} up"
         onclick={() => store.moveBehavior(behavior.id, -1)}>↑</button>

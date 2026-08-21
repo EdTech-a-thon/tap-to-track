@@ -3,7 +3,10 @@ import { auth } from "$lib/auth.svelte";
 import { seatStudent, unseatStudent } from "$lib/domain/assignment";
 import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
 import { endSession, openSessionIn } from "$lib/domain/sessions";
-import type { Behavior, BehaviorMode, Class, Seat, Session, Student } from "$lib/domain/types";
+import { resolveTap } from "$lib/domain/taps";
+import type {
+  Behavior, BehaviorMode, Class, Seat, Session, Student, Tap,
+} from "$lib/domain/types";
 
 const owner = () => auth.teacher?.id ?? "";
 
@@ -14,6 +17,9 @@ class Store {
   behaviors = $state<Behavior[]>([]);
   seats = $state<Seat[]>([]);
   sessions = $state<Session[]>([]);
+  taps = $state<Tap[]>([]);
+  /** The Tap most recently recorded, so it can be undone from the toast. */
+  lastTap = $state<{ id: string; studentName: string; behaviorName: string } | null>(null);
   loaded = $state(false);
   activeClassId = $state<string | null>(null);
 
@@ -26,23 +32,29 @@ class Store {
 
   async load() {
     if (!owner()) return;
-    const [classes, students, behaviors, seats, sessions] = await Promise.all([
+    const [classes, students, behaviors, seats, sessions, taps] = await Promise.all([
       pb.collection("classes").getFullList({ sort: "name" }),
       pb.collection("students").getFullList({ sort: "name" }),
       pb.collection("behaviors").getFullList({ sort: "position" }),
       pb.collection("seats").getFullList(),
       pb.collection("sessions").getFullList({ sort: "-openedAt" }),
+      pb.collection("taps").getFullList({ sort: "created" }),
     ]);
     this.classes = classes.map((r) => ({ id: r.id, name: r.name, behaviorIds: r.behaviors ?? [] }));
     this.students = students.map((r) => ({
       id: r.id, classId: r.class, name: r.name, seatId: r.seat || null,
     }));
     this.behaviors = behaviors.map((r) => ({
-      id: r.id, name: r.name, color: r.color, mode: r.mode, position: r.position ?? 0,
+      id: r.id, name: r.name, color: r.color, mode: r.mode,
+      position: r.position ?? 0, away: r.away ?? false,
     }));
     this.seats = seats.map((r) => ({ id: r.id, x: r.x ?? 0, y: r.y ?? 0 }));
     this.sessions = sessions.map((r) => ({
       id: r.id, classId: r.class, openedAt: r.openedAt, endedAt: r.endedAt || null,
+    }));
+    this.taps = taps.map((r) => ({
+      id: r.id, sessionId: r.session, studentId: r.student,
+      behaviorId: r.behavior, createdAt: r.created,
     }));
     if (!this.behaviors.length) await this.seedDefaultBehaviors();
     if (!this.activeClassId) this.activeClassId = this.classes[0]?.id ?? null;
@@ -54,14 +66,15 @@ class Store {
     const created = await Promise.all(DEFAULT_BEHAVIORS.map((behavior, position) =>
       pb.collection("behaviors").create({ ...behavior, position, owner: owner() })));
     this.behaviors = created.map((r) => ({
-      id: r.id, name: r.name, color: r.color, mode: r.mode, position: r.position,
+      id: r.id, name: r.name, color: r.color, mode: r.mode,
+      position: r.position, away: r.away ?? false,
     }));
   }
 
   async addBehavior(name: string, color: string, mode: BehaviorMode) {
     const position = this.behaviors.length;
     const record = await pb.collection("behaviors").create({ name, color, mode, position, owner: owner() });
-    this.behaviors = [...this.behaviors, { id: record.id, name, color, mode, position }];
+    this.behaviors = [...this.behaviors, { id: record.id, name, color, mode, position, away: false }];
   }
 
   async updateBehavior(id: string, change: Partial<Omit<Behavior, "id">>) {
@@ -159,6 +172,44 @@ class Store {
     const now = new Date().toISOString();
     this.sessions = endSession(this.sessions, id, now);
     await pb.collection("sessions").update(id, { endedAt: now });
+  }
+
+  /**
+   * Records one press. Returns what happened so the caller can offer an undo, or explain
+   * why nothing was recorded.
+   */
+  async tap(studentId: string, behavior: Behavior) {
+    const session = this.openSession;
+    if (!session) return "no-session" as const;
+
+    const outcome = resolveTap(this.taps, session.id, studentId, behavior, this.behaviors);
+    if (outcome.action === "refuse") return "away" as const;
+
+    if (outcome.action === "remove") {
+      await this.removeTap(outcome.tapId);
+      return "removed" as const;
+    }
+
+    const record = await pb.collection("taps").create({
+      session: session.id, student: studentId, behavior: behavior.id, owner: owner(),
+    });
+    this.taps = [...this.taps, {
+      id: record.id, sessionId: session.id, studentId,
+      behaviorId: behavior.id, createdAt: record.created,
+    }];
+    this.lastTap = {
+      id: record.id,
+      studentName: this.students.find((student) => student.id === studentId)?.name ?? "",
+      behaviorName: behavior.name,
+    };
+    return "added" as const;
+  }
+
+  /** Undo hard-deletes the row rather than logging a correction against it. */
+  async removeTap(id: string) {
+    this.taps = this.taps.filter((tap) => tap.id !== id);
+    if (this.lastTap?.id === id) this.lastTap = null;
+    await pb.collection("taps").delete(id);
   }
 
   async addStudents(classId: string, names: string[]) {

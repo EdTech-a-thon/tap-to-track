@@ -11,12 +11,14 @@ export const BEHAVIOR_COLORS = [
 ];
 
 /** What a teacher gets before they have configured anything. */
-export const DEFAULT_BEHAVIORS: { name: string; color: string; mode: BehaviorMode }[] = [
+export const DEFAULT_BEHAVIORS: {
+  name: string; color: string; mode: BehaviorMode; away?: boolean;
+}[] = [
   { name: "Participation", color: "#3d7ea6", mode: "tally" },
   { name: "Positive behavior", color: "#2f7d5c", mode: "tally" },
   { name: "Redirect", color: "#cf8a3f", mode: "tally" },
   // Absence lasts a whole Session, so it toggles rather than counting up.
-  { name: "Absent", color: "#5a615e", mode: "toggle" },
+  { name: "Absent", color: "#5a615e", mode: "toggle", away: true },
 ];
 
 /** The Behaviors a Class shows on its popup, in the teacher's chosen order. */

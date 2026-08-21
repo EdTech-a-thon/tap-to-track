@@ -11,6 +11,9 @@ export type Behavior = {
   /** Tallies count every tap; toggles are on or off for the whole Session. */
   mode: BehaviorMode;
   position: number;
+  /** While this Behavior is on, the Student is out of the room and cannot be recorded
+   * for anything else. Only sensible on a toggling Behavior. */
+  away?: boolean;
 };
 
 /** One position in the Layout. Shared by every Class — see ADR 0002. */

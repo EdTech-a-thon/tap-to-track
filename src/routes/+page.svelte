@@ -3,12 +3,14 @@
   import SeatCanvas from "$lib/components/SeatCanvas.svelte";
   import SeatingMode from "$lib/components/SeatingMode.svelte";
   import SessionBar from "$lib/components/SessionBar.svelte";
+  import TrackingMode from "$lib/components/TrackingMode.svelte";
+  import UndoToast from "$lib/components/UndoToast.svelte";
   import { seatDeletionImpact } from "$lib/domain/assignment";
   import { nextSeatSpot } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
 
-  type Mode = "layout" | "assign";
-  let mode: Mode = $state("layout");
+  type Mode = "track" | "seating" | "layout";
+  let mode: Mode = $state("track");
   let snapping = $state(true);
   let selectedSeatId = $state<string | null>(null);
 
@@ -37,8 +39,9 @@
 <main class="page chart-page">
   <section class="chart-bar">
     <div class="modes" role="group" aria-label="Chart mode">
+      <button class:active={mode === "track"} onclick={() => (mode = "track")}>Teaching</button>
+      <button class:active={mode === "seating"} onclick={() => (mode = "seating")}>Seating</button>
       <button class:active={mode === "layout"} onclick={() => (mode = "layout")}>Layout</button>
-      <button class:active={mode === "assign"} onclick={() => (mode = "assign")}>Seating</button>
     </div>
 
     {#if store.classes.length}
@@ -93,6 +96,17 @@
         onSeatClick={(seat) => (selectedSeatId = seat.id === selectedSeatId ? null : seat.id)}
       />
     {/if}
+  {:else if mode === "track"}
+    {#if !store.activeClass}
+      <section class="empty">
+        <span>✦</span>
+        <h2>No classes yet</h2>
+        <p>Make a class and add some students before you start teaching.</p>
+        <a class="primary" href="/setup">Go to Setup</a>
+      </section>
+    {:else}
+      <TrackingMode classId={store.activeClass.id} />
+    {/if}
   {:else if !store.activeClass}
     <section class="empty">
       <span>✦</span>
@@ -111,3 +125,5 @@
     <SeatingMode classId={store.activeClass.id} />
   {/if}
 </main>
+
+<UndoToast />
