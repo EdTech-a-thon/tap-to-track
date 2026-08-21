@@ -2,7 +2,8 @@ import { pb } from "$lib/pb";
 import { auth } from "$lib/auth.svelte";
 import { seatStudent, unseatStudent } from "$lib/domain/assignment";
 import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
-import type { Behavior, BehaviorMode, Class, Seat, Student } from "$lib/domain/types";
+import { endSession, openSessionIn } from "$lib/domain/sessions";
+import type { Behavior, BehaviorMode, Class, Seat, Session, Student } from "$lib/domain/types";
 
 const owner = () => auth.teacher?.id ?? "";
 
@@ -12,10 +13,12 @@ class Store {
   students = $state<Student[]>([]);
   behaviors = $state<Behavior[]>([]);
   seats = $state<Seat[]>([]);
+  sessions = $state<Session[]>([]);
   loaded = $state(false);
   activeClassId = $state<string | null>(null);
 
   activeClass = $derived(this.classes.find((cls) => cls.id === this.activeClassId) ?? this.classes[0]);
+  openSession = $derived(openSessionIn(this.sessions));
 
   studentsIn(classId: string | undefined) {
     return this.students.filter((student) => student.classId === classId);
@@ -23,11 +26,12 @@ class Store {
 
   async load() {
     if (!owner()) return;
-    const [classes, students, behaviors, seats] = await Promise.all([
+    const [classes, students, behaviors, seats, sessions] = await Promise.all([
       pb.collection("classes").getFullList({ sort: "name" }),
       pb.collection("students").getFullList({ sort: "name" }),
       pb.collection("behaviors").getFullList({ sort: "position" }),
       pb.collection("seats").getFullList(),
+      pb.collection("sessions").getFullList({ sort: "-openedAt" }),
     ]);
     this.classes = classes.map((r) => ({ id: r.id, name: r.name, behaviorIds: r.behaviors ?? [] }));
     this.students = students.map((r) => ({
@@ -37,6 +41,9 @@ class Store {
       id: r.id, name: r.name, color: r.color, mode: r.mode, position: r.position ?? 0,
     }));
     this.seats = seats.map((r) => ({ id: r.id, x: r.x ?? 0, y: r.y ?? 0 }));
+    this.sessions = sessions.map((r) => ({
+      id: r.id, classId: r.class, openedAt: r.openedAt, endedAt: r.endedAt || null,
+    }));
     if (!this.behaviors.length) await this.seedDefaultBehaviors();
     if (!this.activeClassId) this.activeClassId = this.classes[0]?.id ?? null;
     this.loaded = true;
@@ -132,6 +139,26 @@ class Store {
       student.seatId === id ? { ...student, seatId: null } : student);
     await Promise.all(occupants.map((student) =>
       pb.collection("students").update(student.id, { seat: "" })));
+  }
+
+  /** Opens a Session, closing one left open so a forgotten lesson cannot absorb today's. */
+  async startSession(classId: string) {
+    const now = new Date().toISOString();
+    const stale = this.openSession;
+    if (stale) await this.endSession(stale.id);
+    const record = await pb.collection("sessions").create({
+      class: classId, openedAt: now, owner: owner(),
+    });
+    this.sessions = [{ id: record.id, classId, openedAt: now, endedAt: null }, ...this.sessions];
+    return record.id;
+  }
+
+  async endSession(id: string) {
+    const session = this.sessions.find((item) => item.id === id);
+    if (!session || session.endedAt) return; // Ended Sessions never reopen or re-close.
+    const now = new Date().toISOString();
+    this.sessions = endSession(this.sessions, id, now);
+    await pb.collection("sessions").update(id, { endedAt: now });
   }
 
   async addStudents(classId: string, names: string[]) {

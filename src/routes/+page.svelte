@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import SeatCanvas from "$lib/components/SeatCanvas.svelte";
   import SeatingMode from "$lib/components/SeatingMode.svelte";
+  import SessionBar from "$lib/components/SessionBar.svelte";
   import { seatDeletionImpact } from "$lib/domain/assignment";
   import { nextSeatSpot } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
@@ -58,6 +59,16 @@
         Delete desk
       </button>
     {/if}
+
+    <div class="bar-end">
+      {#if store.openSession}
+        <SessionBar />
+      {:else if store.activeClass}
+        <button class="primary" onclick={() => store.startSession(store.activeClass.id)}>
+          Start class
+        </button>
+      {/if}
+    </div>
   </section>
 
   {#if !store.loaded}

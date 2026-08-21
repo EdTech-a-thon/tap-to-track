@@ -56,3 +56,9 @@ form .primary { width: 100%; }
 .carry { position: fixed; z-index: 20; padding: .5rem .9rem; border-radius: 999px; color: white; background: var(--green); font-weight: 700; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 8px 20px #24443b40; }
 a.primary { display: inline-block; text-decoration: none; }
 .chart-bar .class-picker { margin-left: 0; }
+.session-bar { display: flex; align-items: center; gap: .75rem; padding: .5rem .9rem; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }
+.session-bar .dot { width: 10px; height: 10px; border-radius: 50%; background: #c0392b; animation: pulse 2s ease-in-out infinite; }
+.session-bar .clock { font-variant-numeric: tabular-nums; color: #5d716a; font-weight: 700; }
+.session-bar.compact { border-color: transparent; background: transparent; color: #f3efe5; } .session-bar.compact .clock { color: #cfd8d3; }
+@keyframes pulse { 50% { opacity: .35; } }
+.bar-end { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
