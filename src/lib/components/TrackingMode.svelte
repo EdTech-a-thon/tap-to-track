@@ -1,14 +1,26 @@
 <script lang="ts">
+  import HighlightPicker from "$lib/components/HighlightPicker.svelte";
   import SeatCanvas from "$lib/components/SeatCanvas.svelte";
   import TapPopup from "$lib/components/TapPopup.svelte";
   import { unseatedIn } from "$lib/domain/assignment";
-  import { isAway } from "$lib/domain/taps";
+  import { seatShade } from "$lib/domain/highlight";
   import { store } from "$lib/store.svelte";
   import type { Student } from "$lib/domain/types";
 
   let { classId }: { classId: string } = $props();
 
   let open = $state<Student | null>(null);
+  let highlightId = $state<string | null>(null);
+
+  // The Highlight is a per-Class habit, so each period opens showing what matters in it.
+  const remembered = (id: string) => `tap-to-track-highlight-${id}`;
+  $effect(() => {
+    highlightId = localStorage.getItem(remembered(classId));
+  });
+  function remember(id: string | null) {
+    if (id) localStorage.setItem(remembered(classId), id);
+    else localStorage.removeItem(remembered(classId));
+  }
   let askingToStart = $state<Student | null>(null);
 
   let students = $derived(store.studentsIn(classId));
@@ -30,21 +42,31 @@
     open = student;
   }
 
+  let highlight = $derived(store.behaviors.find((behavior) => behavior.id === highlightId) ?? null);
+
   function shade(student: Student | undefined) {
-    if (!student || !session) return undefined;
-    const behaviors = store.behaviors;
-    if (isAway(store.taps, session.id, student.id, behaviors)) {
-      return behaviors.find((behavior) => behavior.away)?.color ?? "#5a615e";
-    }
-    return undefined;
+    if (!student) return { away: false } as ReturnType<typeof seatShade>;
+    return seatShade(store.taps, session?.id ?? null, student.id, highlight, store.behaviors);
   }
 </script>
 
 <div class="tracking">
+  <div class="tracking-bar">
+    <HighlightPicker {classId} bind:value={
+      () => highlightId,
+      (next) => { highlightId = next; remember(next); }
+    } />
+  </div>
+
   <SeatCanvas
     seatLabel={(seat) => {
       const student = occupant.get(seat.id);
-      return { text: student?.name ?? "", color: shade(student) };
+      const look = shade(student);
+      return {
+        text: student?.name ?? "",
+        color: look.color,
+        strong: look.away || look.color?.endsWith("ff"),
+      };
     }}
     onSeatClick={(seat) => pick(occupant.get(seat.id))}
   />
@@ -55,7 +77,8 @@
       <ul>
         {#each unseated as student (student.id)}
           <li>
-            <button class="chip" style:background={shade(student)} onclick={() => pick(student)}>
+            <button class="chip" class:strong={shade(student).away}
+              style:background={shade(student).color} onclick={() => pick(student)}>
               {student.name}
             </button>
           </li>

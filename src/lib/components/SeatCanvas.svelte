@@ -7,7 +7,7 @@
     snapping?: boolean;
     draggable?: boolean;
     selectedId?: string | null;
-    seatLabel?: (seat: Seat) => { text: string; color?: string; faded?: boolean };
+    seatLabel?: (seat: Seat) => { text: string; color?: string; faded?: boolean; strong?: boolean };
     onSeatClick?: (seat: Seat) => void;
   } = $props();
 
@@ -58,6 +58,7 @@
       class:selected={selectedId === seat.id}
       class:faded={label?.faded}
       class:empty={!label?.text}
+      class:strong={label?.strong}
       style:left="{seat.x}px" style:top="{seat.y}px"
       style:width="{SEAT_SIZE}px" style:height="{SEAT_SIZE}px"
       style:background={label?.color}

@@ -74,3 +74,5 @@ a.primary { display: inline-block; text-decoration: none; }
 .tracking { display: grid; gap: 1rem; } .popup.narrow { width: min(460px, calc(100vw - 2rem)); }
 .toast button { text-decoration: underline; font-weight: 700; }
 .check.away { font-size: .78rem !important; text-transform: uppercase; letter-spacing: .05em; color: #657770; }
+.tracking-bar { display: flex; align-items: center; gap: .75rem; } .highlight { margin-left: 0; }
+.seat.strong, .chip.strong { color: #fffdf7; border-color: transparent; }
