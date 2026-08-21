@@ -113,6 +113,21 @@ class Store {
     if (this.activeClassId === id) this.activeClassId = this.classes[0]?.id ?? null;
   }
 
+  async addSeat(x: number, y: number) {
+    const record = await pb.collection("seats").create({ x, y, owner: owner() });
+    this.seats = [...this.seats, { id: record.id, x, y }];
+  }
+
+  async moveSeat(id: string, x: number, y: number) {
+    this.seats = this.seats.map((seat) => (seat.id === id ? { ...seat, x, y } : seat));
+    await pb.collection("seats").update(id, { x, y });
+  }
+
+  async deleteSeat(id: string) {
+    await pb.collection("seats").delete(id);
+    this.seats = this.seats.filter((seat) => seat.id !== id);
+  }
+
   async addStudents(classId: string, names: string[]) {
     const created = await Promise.all(names.map((name) =>
       pb.collection("students").create({ name, class: classId, owner: owner() })));
