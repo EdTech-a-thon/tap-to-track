@@ -1,0 +1,94 @@
+/// <reference path="../pb_data/types.d.ts" />
+migrate((app) => {
+  const collection = new Collection({
+    "createRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "deleteRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_3660498186",
+        "help": "",
+        "hidden": false,
+        "id": "relation3494172116",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "session",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_3827815851",
+        "help": "",
+        "hidden": false,
+        "id": "relation3072569139",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "student",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_3028234687",
+        "help": "",
+        "hidden": false,
+        "id": "relation1001103536",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "behavior",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "relation3479234172",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "owner",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      }
+    ],
+    "id": "pbc_1295152896",
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "name": "taps",
+    "system": false,
+    "type": "base",
+    "updateRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "viewRule": "@request.auth.id != \"\" && owner = @request.auth.id"
+  });
+
+  return app.save(collection);
+}, (app) => {
+  const collection = app.findCollectionByNameOrId("pbc_1295152896");
+
+  return app.delete(collection);
+})

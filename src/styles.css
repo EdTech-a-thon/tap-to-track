@@ -22,3 +22,7 @@ textarea, input { width: 100%; margin-top: .45rem; padding: .75rem; border: 1px 
 .roster-list { margin: 1.5rem 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); } .roster-list li { display: flex; align-items: center; gap: .7rem; min-height: 58px; border-bottom: 1px solid var(--line); } .roster-list li strong { margin-right: auto; } .roster-list li button { border: 0; background: transparent; color: #8a4038; font-weight: 700; }
 .toast { position: fixed; right: 1rem; bottom: 1rem; display: flex; align-items: center; gap: .8rem; max-width: calc(100vw - 2rem); padding: .75rem 1rem; border-radius: 12px; color: white; background: #173c33; box-shadow: 0 8px 28px #0003; } .toast button { min-height: 30px; border: 0; color: white; background: transparent; font-size: 1.3rem; }
 @media (max-width: 720px) { .topbar { flex-wrap: wrap; gap: .6rem 1rem; } .class-picker { order: 3; width: 100%; } .class-picker select { flex: 1; } nav { margin-left: auto; } .page { padding-top: 1.25rem; } .hero { align-items: start; } .summary { gap: .4rem; } .summary div { padding: .7rem; } .summary strong { font-size: 1.55rem; } .setup-grid { grid-template-columns: 1fr; } }
+.signin { width: min(430px, 100%); padding-top: 12vh; } .signin .panel { padding: 2rem; } .signin h1 { font-size: 2.2rem; } .signin p { color: #657770; }
+.linkish { border: 0; background: transparent; color: var(--green); font-weight: 700; text-decoration: underline; }
+.error { color: #8a4038; font-weight: 600; }
+form .primary { width: 100%; }
