@@ -13,11 +13,11 @@ show up in a table afterwards.
 - **Seating separate from the room.** Drag a student onto a desk; drop them on a taken
   one to swap. Each class has its own seating on the same furniture.
 - **Up to six things to track.** Participation, positive behavior, redirect and absent
-  come as defaults. Each one counts every tap, or toggles on and off for the lesson.
+  come as defaults. Each one counts every tap, or toggles on and off for the day.
   Each class chooses which appear on its buttons.
-- **A lesson at a time.** Start class clears the chart and opens a session; end class
-  closes it. Analytics counts per session, so "redirects per class" means per lesson.
-- **Teaching mode.** Starting a class fills the screen with just the room.
+- **A day at a time.** There is nothing to start or end. Counts and on/off marks cover
+  today and start clean tomorrow, and every tap is stored with the moment it happened.
+- **Full screen.** One button fills the screen with just the room, for teaching.
 - **Tap a face, press a button.** Counts update instantly, a toast offers an undo, and
   a dropped connection costs you nothing — taps queue and save themselves later.
 - **Analytics and export.** Counts per student over the last week, month, or all time,

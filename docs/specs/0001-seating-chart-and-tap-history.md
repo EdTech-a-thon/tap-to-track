@@ -23,14 +23,14 @@ separate jobs in separate modes, so re-seating a Class never disturbs the furnit
 the one Layout is shared by every Class the teacher meets in that room.
 
 They decide what they want to track: up to six Behaviors, each with a name and a colour,
-each set either to tally every tap or to toggle on and off for the whole Session.
+each set either to tally every tap or to toggle on and off for the whole day.
 Participation, positive behavior, redirect and absent ship as defaults. Each Class turns
 on the subset it uses.
 
-Then they start a class. That opens a Session, clears the chart back to unmarked, and
-drops the app into Teaching mode — full-screen, no chrome, just the room. Tapping a
-face opens a large popup of Behavior buttons; each press records one Tap as a row that
-is never overwritten. The chart shades Seats by whichever Behavior is currently
+Then they teach. There is nothing to start or end: a Full screen button drops the app
+into Teaching mode — full-screen, no chrome, just the room — and the chart shows today,
+starting clean each morning. Tapping a face opens a large popup of Behavior buttons;
+each press records one Tap as a row that is never overwritten. The chart shades Seats by whichever Behavior is currently
 highlighted, so the teacher can see at a glance who has not been heard from.
 
 Afterwards, an analytics table counts Taps per Student over the last week, the last
@@ -86,30 +86,25 @@ screen as a CSV.
 23. As a teacher, I want each Behavior to have a colour, so that the chart is readable at
     a glance from across the room.
 24. As a teacher, I want to choose whether a Behavior tallies or toggles, so that things
-    that happen repeatedly and states that last a Session are both recorded honestly.
+    that happen repeatedly and states that last a day are both recorded honestly.
 25. As a teacher, I want participation, positive behavior, redirect and absent to exist
     by default, so that the app is usable before I have configured anything.
 26. As a teacher, I want to turn Behaviors on and off per Class, so that a button I never
     press in Period 2 does not slow down Period 2.
 27. As a teacher, I want every Behavior counted in analytics regardless of which Class
     shows it, so that the record is complete even where the button is hidden.
-28. As a teacher, I want to start a class from a dropdown, so that taps are recorded
-    against the right roster.
-29. As a teacher, I want starting a class to clear the chart back to unmarked, so that
-    today's lesson does not inherit yesterday's colours.
-30. As a teacher, I want to be asked to start a class if I tap before opening one, so
-    that a stray tap while setting up the room does not become a phantom Session.
-31. As a teacher, I want to end a class explicitly, so that the Session has a real
-    duration and the day's record is closed.
-32. As a teacher, I want starting a new Session to close a Session I forgot to end, so
-    that Monday's lesson does not silently absorb Tuesday's taps.
-33. As a teacher, I want to see a banner while a Session is open, so that I know the app
-    is recording.
+28. As a teacher, I want to pick the class I am teaching from a dropdown, so that taps
+    are recorded against the right roster.
+29. As a teacher, I want the chart to cover today only, so that this morning's lesson
+    does not inherit yesterday's colours — and so that nothing has to be started or
+    ended for that to be true. See ADR 0004.
+30. As a teacher, I want a tap to record the moment I make it, so that nothing stands
+    between me and the child it was about.
 34. As a teacher, I want tapping a face to open a large popup, so that I can hit it
     without looking while I am teaching.
 35. As a teacher, I want the popup laid out as a grid that fits the number of Behaviors,
     so that the buttons are as large as they can be.
-36. As a teacher, I want the popup to show the student's counts for this Session, so that
+36. As a teacher, I want the popup to show the student's counts for today, so that
     I can see what I have already recorded before adding to it.
 37. As a teacher, I want a close button on the popup, so that I can dismiss it without
     recording anything.
@@ -134,9 +129,9 @@ screen as a CSV.
     opens showing what I care about in it.
 47. As a teacher, I want a Teaching mode that fills the screen and hides the controls, so
     that during a lesson there is nothing on screen but my room.
-48. As a teacher, I want starting a class to put me straight into Teaching mode, so that
-    the daily workflow is one action rather than two.
-49. As a teacher, I want to leave Teaching mode without ending the Session, so that
+48. As a teacher, I want one button to fill the screen with my room, so that getting
+    ready to teach is a single action.
+49. As a teacher, I want to leave Teaching mode without losing anything, so that
     checking something mid-lesson does not cost me the lesson's record.
 50. As a teacher, I want a visible way out of Teaching mode at all times, so that I am
     never stranded in a full-screen app in front of thirty children.
@@ -192,9 +187,7 @@ screen as a CSV.
 - **`seats`** — x, y, owner. No Class relation: the Layout is a single shared arrangement
   per teacher, per ADR 0002.
 - **`behaviors`** — name, colour, mode (`tally` or `toggle`), sort order, owner.
-- **`sessions`** — a relation to one Class, opened-at, ended-at (empty while open), owner.
-- **`taps`** — relations to one Session, one Student and one Behavior, an `at` timestamp,
-  owner. Append-only in normal use; rows are deleted only by Undo and by un-toggling.
+- **`taps`** — relations to one Student and one Behavior, an `at` timestamp, owner. Append-only in normal use; rows are deleted only by Undo and by un-toggling.
   The timestamp is stamped by the app rather than by the database: a Tap belongs to the
   moment the teacher pressed the button, not to whenever the outbox got it through.
 
@@ -219,7 +212,7 @@ screen as a CSV.
 - Each Class enables a subset. That subset controls **only which buttons appear in the
   popup** — analytics and export count every Behavior across every Class.
 - A **tallying** Behavior writes a new Tap row per press. A **toggling** Behavior is
-  defined by the presence or absence of a row for that Session, Student and Behavior:
+  defined by the presence or absence of a row for that day, Student and Behavior:
   pressing it once creates the row, pressing it again deletes it.
 - Absent ships as a toggling Behavior coloured dark grey. It is otherwise an ordinary
   Behavior — it occupies one of the six slots and can be renamed or deleted. There is no
@@ -232,14 +225,12 @@ screen as a CSV.
 - **Undo hard-deletes the row.** No compensating negative rows: they complicate every
   query forever in exchange for an audit trail nobody reads.
 
-### Sessions
+### The day
 
-- Start is explicit, from a Class dropdown. End is explicit. Starting a Session
-  **auto-closes** any Session left open.
-- A tap with no open Session **prompts to start one** rather than opening one silently.
-  Silent auto-start is what turns a stray setup tap into a phantom two-minute Session
-  that drags every per-Session average down.
-- Sessions cannot be reopened once ended.
+- There is **nothing to start or end.** Counts, toggles and shading cover the teacher's
+  own calendar day, and start clean the next morning. See ADR 0004.
+- Every Tap keeps the minute it was pressed, so a lesson can be **derived from
+  timestamps and a timetable** later if per-lesson numbers are ever wanted.
 
 ### Chart, Highlight and modes
 
@@ -248,12 +239,12 @@ screen as a CSV.
 - The **Highlight picker lives on the chart**, not in configuration, because switching
   between "who have I not called on" and "who has needed redirecting" is a mid-lesson
   move. The choice is remembered per Class.
-- Seats are shaded in **four steps** by count within the open Session: unmarked, one,
+- Seats are shaded in **four steps** by today's count: unmarked, one,
   two, three-or-more at full colour. Absent always overrides the Highlight shading.
-- **Teaching mode** is full-screen and keeps only the seats, the Highlight picker, the
-  unseated row, and a minimal Session bar. The Class dropdown and mode switcher are
-  hidden. Starting a class enters it automatically and ending one exits; Esc and a
-  persistently visible corner control also exit without ending the Session.
+- **Teaching mode** is full-screen and keeps only the seats, the Class dropdown, the
+  Highlight picker and the unseated row. The mode switcher is hidden. A Full screen
+  button enters it; Esc and a persistently visible control leave it, and leaving costs
+  nothing because nothing was open.
 
 ### Offline behaviour
 
@@ -307,8 +298,8 @@ wrong answer would be a wrong *number* or a wrong *record* — not whether it is
 - Tap resolution: a tallying Behavior accumulates; a toggling Behavior creates on first
   press and deletes on second; an absent Student rejects every Behavior but the absent
   toggle.
-- Session rules: a tap with no open Session is refused with a prompt-to-start; opening a
-  Session closes an open one; an ended Session cannot reopen.
+- Day scoping: a Tap counts on the calendar day it was pressed, so yesterday's toggles
+  and counts never leak into today.
 - Highlight shading: counts map to the four shade steps, and absent overrides.
 - Analytics aggregation: Taps reduce to per-Student, per-Behavior counts over a rolling
   window, honouring Behavior and Class filters, and Students with zero Taps still appear.
@@ -336,9 +327,9 @@ rule or a migration, so those are verified manually against a running instance.
 
 ## Out of Scope
 
-- **Average Taps per Session and most Taps in a single Session.** Named in the original
+- **Average Taps per lesson and most Taps in a single lesson.** Named in the original
   request and deliberately dropped in favour of a plain count table. A student with 12
-  redirects over 30 Sessions and one with 12 over 3 will look identical.
+  redirects over 30 lessons and one with 12 over 3 will look identical.
 - **Migrating existing saved rosters.** The current `localStorage` data is abandoned, not
   imported.
 - **Multiple rooms.** One Layout per teacher; a teacher who moves between two rooms is
@@ -347,11 +338,10 @@ rule or a migration, so those are verified manually against a running instance.
   histories that no view can total (ADR 0003).
 - **Attendance as a concept.** Absence is a Behavior; there is no attendance feature,
   register, or per-Class attendance setting.
-- **Reopening an ended Session.**
 - **Per-Class Behavior definitions.** Classes enable and disable from one global list;
   they do not define their own.
 - **Sharing a Class between teachers**, real-time sync between two devices watching the
-  same Session, and any collaborative editing.
+  same chart, and any collaborative editing.
 - **Full surnames, student identifiers, photos, and any other identifying data.**
 - Printing, PDF export, gradebook or Google Classroom integration, and any export format
   other than a CSV of the visible table.
@@ -362,13 +352,14 @@ rule or a migration, so those are verified manually against a running instance.
   that rosters stay on the device. Both statements become false with this change and must
   be rewritten in the same piece of work — including the promise about display names,
   which this spec keeps and should say so explicitly.
-- The vocabulary in this spec is the project glossary in `CONTEXT.md`: Class, Session,
+- The vocabulary in this spec is the project glossary in `CONTEXT.md`: Class, Day,
   Layout, Seat, Assignment, Student, Behavior, Tap, Highlight, Unseated, and
   tallies/toggles. "Class" always means the roster that meets repeatedly and never a
-  single meeting; per-class statistics are per-Session.
-- Three ADRs cover the decisions in this area and should be read before changing them:
+  single meeting.
+- Four ADRs cover the decisions in this area and should be read before changing them:
   0001 (PocketBase over `localStorage`, and the offline consequence), 0002 (one Layout
-  shared by every Class), 0003 (a Student belongs to one Class).
+  shared by every Class), 0003 (a Student belongs to one Class), 0004 (no Sessions: a Tap
+  is scoped to the day it happened).
 - Local development runs through `../scripts/agent-dev.mjs`, which starts the project's
   PocketBase automatically once the binary is present and injects
   `PUBLIC_POCKETBASE_URL`. Ports are leased; nothing here should hard-code 8000 or 8090.

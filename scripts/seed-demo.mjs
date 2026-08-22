@@ -75,26 +75,20 @@ for (const [index, name] of NAMES.entries()) {
 
 // Six weeks of lessons, so the week / month / all-time windows each show something.
 const tallying = behaviors.filter((behavior) => !behavior.away);
-let sessionCount = 0;
+let lessonCount = 0;
 let tapCount = 0;
 for (let daysAgo = 40; daysAgo >= 0; daysAgo -= 2) {
   for (const cls of classes) {
-    const opened = new Date(Date.now() - daysAgo * 86_400_000);
-    const session = await post("/api/collections/sessions/records", {
-      class: cls.id,
-      openedAt: opened.toISOString(),
-      endedAt: new Date(opened.getTime() + 50 * 60_000).toISOString(),
-      owner,
-    }, token);
-    sessionCount += 1;
+    const started = new Date(Date.now() - daysAgo * 86_400_000);
+    lessonCount += 1;
 
     const roster = students.filter((student) => student.class === cls.id);
     for (const student of roster) {
       for (let n = 0; n < Math.floor(Math.random() * 3); n += 1) {
         // Stamped with the lesson's own date, so the week / month / all-time windows differ.
-        const at = new Date(opened.getTime() + Math.random() * 45 * 60_000).toISOString();
+        const at = new Date(started.getTime() + Math.random() * 45 * 60_000).toISOString();
         await post("/api/collections/taps/records", {
-          session: session.id, student: student.id, behavior: pick(tallying).id, at, owner,
+          student: student.id, behavior: pick(tallying).id, at, owner,
         }, token);
         tapCount += 1;
       }
@@ -103,4 +97,4 @@ for (let daysAgo = 40; daysAgo >= 0; daysAgo -= 2) {
 }
 
 console.log(`Demo ready: ${EMAIL} / ${PASSWORD}`);
-console.log(`${classes.length} classes, ${students.length} students, ${seats.length} desks, ${sessionCount} sessions, ${tapCount} taps.`);
+console.log(`${classes.length} classes, ${students.length} students, ${seats.length} desks, ${lessonCount} lessons, ${tapCount} taps.`);

@@ -33,10 +33,11 @@ One learner on a Class roster, known by a first name and enough of a last name t
 them apart from anyone else in the room.
 _Avoid_: learner, kid, pupil
 
-**Session**:
-One meeting of a Class. Opened deliberately, closed deliberately. The unit that
-analytics counts: "redirects per class" means redirects per Session.
-_Avoid_: class, day, period, lesson
+**Day**:
+The scope a Tap is counted in on the chart. Counts and toggles cover the teacher's own
+calendar day and start clean the next morning — there is nothing to open or close. See
+ADR 0004.
+_Avoid_: session, period, lesson
 
 ### The tracking
 
@@ -50,17 +51,17 @@ _Avoid_: metric, thing, tag, action, attendance
 **Tallies / Toggles**:
 The two modes a Behavior can be set to. A tallying Behavior counts every tap, so three
 taps mean it happened three times. A toggling Behavior is either on or off for the whole
-Session, so tapping it again turns it back off rather than counting again.
+day, so tapping it again turns it back off rather than counting again.
 _Avoid_: cumulative, sticky, one-shot
 
 **Tap**:
-One recorded event: a Student, a Behavior, a Session, a moment in time. The unit of
-everything stored and everything counted.
+One recorded event: a Student, a Behavior, a moment in time. The unit of everything
+stored and everything counted.
 _Avoid_: mark, point, count, hit
 
 **Highlight**:
 The one Behavior currently colouring the Seats in the chart, so a teacher can see at a
-glance who has and hasn't been marked in this Session. Chosen on the chart itself, and
+glance who has and hasn't been marked today. Chosen on the chart itself, and
 shaded by how many times a Student has been marked, not merely whether they have.
 _Avoid_: filter, overlay
 

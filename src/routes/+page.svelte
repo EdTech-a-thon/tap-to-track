@@ -3,13 +3,12 @@
   import SeatCanvas from "$lib/components/SeatCanvas.svelte";
   import SeatingMode from "$lib/components/SeatingMode.svelte";
   import OutboxBadge from "$lib/components/OutboxBadge.svelte";
-  import SessionBar from "$lib/components/SessionBar.svelte";
   import TrackingMode from "$lib/components/TrackingMode.svelte";
   import UndoToast from "$lib/components/UndoToast.svelte";
   import { seatDeletionImpact } from "$lib/domain/assignment";
   import { nextSeatSpot } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
-  import { enterTeaching, leaveTeaching, ui } from "$lib/ui.svelte";
+  import { enterTeaching, ui } from "$lib/ui.svelte";
 
   type Mode = "track" | "seating" | "layout";
   let mode: Mode = $state("track");
@@ -18,15 +17,8 @@
 
   onMount(() => store.load());
 
-  // Ending a class — or a forgotten one being auto-closed — drops out of Teaching mode.
-  $effect(() => {
-    if (ui.teaching && !store.openSession) leaveTeaching();
-  });
-
-  /** Starting a class is the moment the room should fill the screen. */
-  async function startClass() {
-    if (!store.activeClass) return;
-    await store.startSession(store.activeClass.id);
+  /** Full screen is a teaching view, so it always shows the chart. */
+  async function goFullScreen() {
     mode = "track";
     await enterTeaching();
   }
@@ -80,12 +72,9 @@
     {/if}
 
     <div class="bar-end">
-      {#if store.openSession}
-        <SessionBar />
-        <button class="secondary" onclick={enterTeaching}>Full screen</button>
-      {:else if store.activeClass}
-        <OutboxBadge />
-        <button class="primary" onclick={startClass}>Start class</button>
+      <OutboxBadge />
+      {#if store.activeClass}
+        <button class="primary" onclick={goFullScreen}>Full screen</button>
       {/if}
     </div>
   </section>

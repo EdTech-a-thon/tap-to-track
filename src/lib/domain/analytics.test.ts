@@ -19,7 +19,7 @@ const behaviors: Behavior[] = [
   { id: "redirect", name: "Redirect", color: "#111", mode: "tally", position: 1 },
 ];
 const tap = (id: string, studentId: string, behaviorId: string, days: number): Tap =>
-  ({ id, sessionId: "s1", studentId, behaviorId, createdAt: daysAgo(days) });
+  ({ id, studentId, behaviorId, createdAt: daysAgo(days) });
 
 const taps = [
   tap("1", "maya", "participation", 1),

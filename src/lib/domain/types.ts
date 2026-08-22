@@ -1,5 +1,5 @@
 // The vocabulary here is the project glossary in CONTEXT.md. Read it before renaming
-// anything: "Class" is a roster that meets repeatedly, "Session" is one meeting of it.
+// anything: "Class" is a roster that meets repeatedly, a "Tap" is one recorded event.
 
 export type BehaviorMode = "tally" | "toggle";
 
@@ -8,7 +8,7 @@ export type Behavior = {
   id: string;
   name: string;
   color: string;
-  /** Tallies count every tap; toggles are on or off for the whole Session. */
+  /** Tallies count every tap; toggles are on or off for the whole day. */
   mode: BehaviorMode;
   position: number;
   /** While this Behavior is on, the Student is out of the room and cannot be recorded
@@ -37,19 +37,9 @@ export type Student = {
   seatId: string | null;
 };
 
-/** One meeting of a Class. */
-export type Session = {
-  id: string;
-  classId: string;
-  openedAt: string;
-  /** null while the Session is open. An ended Session never reopens. */
-  endedAt: string | null;
-};
-
 /** One recorded event. Append-only except for Undo and un-toggling. */
 export type Tap = {
   id: string;
-  sessionId: string;
   studentId: string;
   behaviorId: string;
   createdAt: string;

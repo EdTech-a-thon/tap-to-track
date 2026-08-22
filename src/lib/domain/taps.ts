@@ -9,32 +9,47 @@ export function popupGrid(count: number): { columns: number; rows: number } {
   return { columns: 3, rows: 2 };
 }
 
-/** Every Tap for one Student in one Session. */
-export function tapsFor(taps: Tap[], sessionId: string, studentId: string): Tap[] {
-  return taps.filter((tap) => tap.sessionId === sessionId && tap.studentId === studentId);
+/**
+ * The calendar day a moment falls on, in the teacher's own timezone. Counts and toggles
+ * cover one day: tomorrow's lesson starts clean without anyone having to end today's.
+ */
+export function dayKey(when: string | Date): string {
+  const date = typeof when === "string" ? new Date(when) : when;
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-/** How many times each Behavior has been recorded for a Student this Session. */
-export function countsFor(taps: Tap[], sessionId: string, studentId: string): Record<string, number> {
+/** Today, as the chart and popup show it. */
+export function today(): string {
+  return dayKey(new Date());
+}
+
+/** Every Tap for one Student on one day. */
+export function tapsFor(taps: Tap[], day: string, studentId: string): Tap[] {
+  return taps.filter((tap) => tap.studentId === studentId && dayKey(tap.createdAt) === day);
+}
+
+/** How many times each Behavior has been recorded for a Student today. */
+export function countsFor(taps: Tap[], day: string, studentId: string): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const tap of tapsFor(taps, sessionId, studentId)) {
+  for (const tap of tapsFor(taps, day, studentId)) {
     counts[tap.behaviorId] = (counts[tap.behaviorId] ?? 0) + 1;
   }
   return counts;
 }
 
-/** A toggling Behavior is on when a Tap for it exists in this Session. */
-export function isOn(taps: Tap[], sessionId: string, studentId: string, behaviorId: string): boolean {
-  return tapsFor(taps, sessionId, studentId).some((tap) => tap.behaviorId === behaviorId);
+/** A toggling Behavior is on when a Tap for it exists on this day. */
+export function isOn(taps: Tap[], day: string, studentId: string, behaviorId: string): boolean {
+  return tapsFor(taps, day, studentId).some((tap) => tap.behaviorId === behaviorId);
 }
 
 /** A Student is away when a Behavior marked as "away" is toggled on for them. */
 export function isAway(
-  taps: Tap[], sessionId: string, studentId: string, behaviors: Behavior[],
+  taps: Tap[], day: string, studentId: string, behaviors: Behavior[],
 ): boolean {
   return behaviors
     .filter((behavior) => behavior.away)
-    .some((behavior) => isOn(taps, sessionId, studentId, behavior.id));
+    .some((behavior) => isOn(taps, day, studentId, behavior.id));
 }
 
 /**
@@ -43,14 +58,14 @@ export function isAway(
  * for someone who is not in the room would be a lie.
  */
 export function resolveTap(
-  taps: Tap[], sessionId: string, studentId: string, behavior: Behavior, behaviors: Behavior[],
+  taps: Tap[], day: string, studentId: string, behavior: Behavior, behaviors: Behavior[],
 ): { action: "add" } | { action: "remove"; tapId: string } | { action: "refuse" } {
-  const away = isAway(taps, sessionId, studentId, behaviors);
+  const away = isAway(taps, day, studentId, behaviors);
   if (away && !behavior.away) return { action: "refuse" };
 
   if (behavior.mode === "tally") return { action: "add" };
 
-  const existing = tapsFor(taps, sessionId, studentId)
+  const existing = tapsFor(taps, day, studentId)
     .find((tap) => tap.behaviorId === behavior.id);
   return existing ? { action: "remove", tapId: existing.id } : { action: "add" };
 }

@@ -28,17 +28,16 @@ export function shadeColor(color: string, step: 0 | 1 | 2 | 3): string | undefin
  */
 export function seatShade(
   taps: Tap[],
-  sessionId: string | null,
+  day: string,
   studentId: string,
   highlight: Behavior | null,
   behaviors: Behavior[],
 ): { color?: string; away: boolean } {
-  if (!sessionId) return { away: false };
-  if (isAway(taps, sessionId, studentId, behaviors)) {
+  if (isAway(taps, day, studentId, behaviors)) {
     const marker = behaviors.find((behavior) => behavior.away);
     return { color: marker?.color ?? "#5a615e", away: true };
   }
   if (!highlight) return { away: false };
-  const count = countsFor(taps, sessionId, studentId)[highlight.id] ?? 0;
+  const count = countsFor(taps, day, studentId)[highlight.id] ?? 0;
   return { color: shadeColor(highlight.color, shadeStep(count)), away: false };
 }
