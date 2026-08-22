@@ -3,10 +3,9 @@ import { newId, outbox } from "$lib/outbox.svelte";
 import { auth } from "$lib/auth.svelte";
 import { seatStudent, unseatStudent } from "$lib/domain/assignment";
 import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
-import { endSession, openSessionIn } from "$lib/domain/sessions";
-import { resolveTap } from "$lib/domain/taps";
+import { resolveTap, today } from "$lib/domain/taps";
 import type {
-  Behavior, BehaviorMode, Class, Seat, Session, Student, Tap,
+  Behavior, BehaviorMode, Class, Seat, Student, Tap,
 } from "$lib/domain/types";
 
 const owner = () => auth.teacher?.id ?? "";
@@ -17,7 +16,6 @@ class Store {
   students = $state<Student[]>([]);
   behaviors = $state<Behavior[]>([]);
   seats = $state<Seat[]>([]);
-  sessions = $state<Session[]>([]);
   taps = $state<Tap[]>([]);
   /** The Tap most recently recorded, so it can be undone from the toast. */
   lastTap = $state<{ id: string; studentName: string; behaviorName: string } | null>(null);
@@ -25,7 +23,6 @@ class Store {
   activeClassId = $state<string | null>(null);
 
   activeClass = $derived(this.classes.find((cls) => cls.id === this.activeClassId) ?? this.classes[0]);
-  openSession = $derived(openSessionIn(this.sessions));
 
   studentsIn(classId: string | undefined) {
     return this.students.filter((student) => student.classId === classId);
@@ -34,12 +31,11 @@ class Store {
   async load() {
     if (!owner()) return;
     outbox.start();
-    const [classes, students, behaviors, seats, sessions, taps] = await Promise.all([
+    const [classes, students, behaviors, seats, taps] = await Promise.all([
       pb.collection("classes").getFullList({ sort: "name" }),
       pb.collection("students").getFullList({ sort: "name" }),
       pb.collection("behaviors").getFullList({ sort: "position" }),
       pb.collection("seats").getFullList(),
-      pb.collection("sessions").getFullList({ sort: "-openedAt" }),
       pb.collection("taps").getFullList({ sort: "at" }),
     ]);
     this.classes = classes.map((r) => ({ id: r.id, name: r.name, behaviorIds: r.behaviors ?? [] }));
@@ -51,12 +47,8 @@ class Store {
       position: r.position ?? 0, away: r.away ?? false,
     }));
     this.seats = seats.map((r) => ({ id: r.id, x: r.x ?? 0, y: r.y ?? 0 }));
-    this.sessions = sessions.map((r) => ({
-      id: r.id, classId: r.class, openedAt: r.openedAt, endedAt: r.endedAt || null,
-    }));
     this.taps = taps.map((r) => ({
-      id: r.id, sessionId: r.session, studentId: r.student,
-      behaviorId: r.behavior, createdAt: r.at,
+      id: r.id, studentId: r.student, behaviorId: r.behavior, createdAt: r.at,
     }));
     if (!this.behaviors.length) await this.seedDefaultBehaviors();
     if (!this.activeClassId) this.activeClassId = this.classes[0]?.id ?? null;
@@ -156,35 +148,12 @@ class Store {
       pb.collection("students").update(student.id, { seat: "" })));
   }
 
-  /** Opens a Session, closing one left open so a forgotten lesson cannot absorb today's. */
-  async startSession(classId: string) {
-    const now = new Date().toISOString();
-    const stale = this.openSession;
-    if (stale) await this.endSession(stale.id);
-    const record = await pb.collection("sessions").create({
-      class: classId, openedAt: now, owner: owner(),
-    });
-    this.sessions = [{ id: record.id, classId, openedAt: now, endedAt: null }, ...this.sessions];
-    return record.id;
-  }
-
-  async endSession(id: string) {
-    const session = this.sessions.find((item) => item.id === id);
-    if (!session || session.endedAt) return; // Ended Sessions never reopen or re-close.
-    const now = new Date().toISOString();
-    this.sessions = endSession(this.sessions, id, now);
-    await pb.collection("sessions").update(id, { endedAt: now });
-  }
-
   /**
    * Records one press. Returns what happened so the caller can offer an undo, or explain
    * why nothing was recorded.
    */
   async tap(studentId: string, behavior: Behavior) {
-    const session = this.openSession;
-    if (!session) return "no-session" as const;
-
-    const outcome = resolveTap(this.taps, session.id, studentId, behavior, this.behaviors);
+    const outcome = resolveTap(this.taps, today(), studentId, behavior, this.behaviors);
     if (outcome.action === "refuse") return "away" as const;
 
     if (outcome.action === "remove") {
@@ -200,11 +169,9 @@ class Store {
     outbox.push({
       kind: "create",
       id,
-      data: { session: session.id, student: studentId, behavior: behavior.id, at, owner: owner() },
+      data: { student: studentId, behavior: behavior.id, at, owner: owner() },
     });
-    this.taps = [...this.taps, {
-      id, sessionId: session.id, studentId, behaviorId: behavior.id, createdAt: at,
-    }];
+    this.taps = [...this.taps, { id, studentId, behaviorId: behavior.id, createdAt: at }];
     this.lastTap = {
       id,
       studentName: this.students.find((student) => student.id === studentId)?.name ?? "",

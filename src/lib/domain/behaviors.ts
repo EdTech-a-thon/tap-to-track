@@ -17,7 +17,7 @@ export const DEFAULT_BEHAVIORS: {
   { name: "Participation", color: "#3d7ea6", mode: "tally" },
   { name: "Positive behavior", color: "#2f7d5c", mode: "tally" },
   { name: "Redirect", color: "#cf8a3f", mode: "tally" },
-  // Absence lasts a whole Session, so it toggles rather than counting up.
+  // Absence lasts the whole day, so it toggles rather than counting up.
   { name: "Absent", color: "#5a615e", mode: "toggle", away: true },
 ];
 

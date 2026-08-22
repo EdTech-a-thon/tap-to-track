@@ -1,17 +1,23 @@
 <script lang="ts">
   import { behaviorsFor } from "$lib/domain/behaviors";
-  import { countsFor, isAway, isOn, popupGrid } from "$lib/domain/taps";
+  import { countsFor, isAway, isOn, popupGrid, today } from "$lib/domain/taps";
   import { store } from "$lib/store.svelte";
-  import type { Student } from "$lib/domain/types";
+  import type { Behavior, Student } from "$lib/domain/types";
 
   let { student, onClose }: { student: Student; onClose: () => void } = $props();
 
   let cls = $derived(store.classes.find((item) => item.id === student.classId));
   let buttons = $derived(behaviorsFor(store.behaviors, cls?.behaviorIds ?? []));
   let grid = $derived(popupGrid(buttons.length));
-  let session = $derived(store.openSession);
-  let counts = $derived(session ? countsFor(store.taps, session.id, student.id) : {});
-  let away = $derived(session ? isAway(store.taps, session.id, student.id, store.behaviors) : false);
+  let day = today();
+  let counts = $derived(countsFor(store.taps, day, student.id));
+  let away = $derived(isAway(store.taps, day, student.id, store.behaviors));
+
+  /** One tap is the whole errand, so recording it closes the popup and hands the room back. */
+  const record = (behavior: Behavior) => () => {
+    store.tap(student.id, behavior);
+    onClose();
+  };
 </script>
 
 <div class="scrim" role="presentation" onclick={onClose}></div>
@@ -32,14 +38,14 @@
   {:else}
     <div class="tap-grid" style:grid-template-columns="repeat({grid.columns}, 1fr)">
       {#each buttons as behavior (behavior.id)}
-        {@const on = session ? isOn(store.taps, session.id, student.id, behavior.id) : false}
+        {@const on = isOn(store.taps, day, student.id, behavior.id)}
         {@const locked = away && !behavior.away}
         <button
           class="tap-button"
           class:on
           disabled={locked}
           style:--tap-color={behavior.color}
-          onclick={() => store.tap(student.id, behavior)}
+          onclick={record(behavior)}
         >
           <strong>{behavior.mode === "toggle" ? (on ? "On" : "—") : (counts[behavior.id] ?? 0)}</strong>
           <span>{behavior.name}</span>
