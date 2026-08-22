@@ -1,54 +1,63 @@
 # Tap-to-Track
 
-Tap-to-Track is a touch-first classroom tool for attendance, participation, skills evidence, and quiet student requests. It is not a gradebook. Students are represented only by a teacher-chosen display name and constrained visual avatar.
+Tap-to-Track is a touch-first classroom tool. A teacher draws their room once, seats
+their students in it, and then taps a face during a lesson to record what happened.
+Underneath, every tap is kept, so patterns that are impossible to hold in your head
+show up in a table afterwards.
 
-## Features
+## What it does
 
-- Isolated teacher accounts and independent classes
-- Fast attendance and participation tracking on one shared tile grid
-- Three-state skills checklists and progress matrix
-- Period history and CSV, Excel, and JSON exports
-- Student self check-in, color-coded requests, and optional self-only progress
-- Offline browser cache with queued changes
-- Installable PWA and real-time WebSocket updates
+- **A seating chart of your actual room.** Drag desks where they belong; they snap to a
+  grid so rows come out straight. The room is drawn once and shared by every class you
+  teach in it — moving a desk never changes who sits where.
+- **Seating separate from the room.** Drag a student onto a desk; drop them on a taken
+  one to swap. Each class has its own seating on the same furniture.
+- **Up to six things to track.** Participation, positive behavior, redirect and absent
+  come as defaults. Each one counts every tap, or toggles on and off for the lesson.
+  Each class chooses which appear on its buttons.
+- **A lesson at a time.** Start class clears the chart and opens a session; end class
+  closes it. Analytics counts per session, so "redirects per class" means per lesson.
+- **Teaching mode.** Starting a class fills the screen with just the room.
+- **Tap a face, press a button.** Counts update instantly, a toast offers an undo, and
+  a dropped connection costs you nothing — taps queue and save themselves later.
+- **Analytics and export.** Counts per student over the last week, month, or all time,
+  filtered by behavior and class, downloadable as a spreadsheet.
 
-## Local development
+## Privacy
 
-Requirements: Node 22+ or Bun 1.3+ and native build tools supported by `better-sqlite3`.
+Tap-to-Track stores a first name and at most three letters of a surname — enough to tell
+two Mayas apart, and no more. It never stores full names, student identifiers, photos, or
+anything else that identifies a child outside your classroom. Each teacher has their own
+account, and nobody else — signed in or not — can read their classes or their students'
+records.
 
-```bash
-cp .env.example .env
-bun install
-bun run dev
+## Try it
+
+Sign in with the demo account to look around without creating anything:
+
+```
+demo@tap-to-track.example
+demoteacher
 ```
 
-Run checks with `bun run test` and `bun run build`.
+## Development
 
-## Production and self-hosting
+SvelteKit and Bun on the front, PocketBase behind it.
 
-1. Point a public HTTPS domain at the host.
-2. Copy `.env.example` to `.env` and set a long random `SESSION_SECRET`.
-3. Set `BASE_URL` and `ALLOWED_ORIGINS` to the public HTTPS origin.
-4. Install dependencies and build with `bun install --frozen-lockfile && bun run build`.
-5. Install PM2 (`npm install --global pm2`), start with `pm2 start ecosystem.config.cjs`, then save the process list with `pm2 save`.
-6. Put an HTTPS reverse proxy in front of the configured `PORT`, preserving WebSocket upgrade headers and `X-Forwarded-Proto`.
+```bash
+bun install
+../scripts/agent-dev.mjs /absolute/path/to/tap-to-track
+```
 
-Environment variables:
+That starts the site and its database together on free ports. On a fresh database, run
+`node scripts/seed-demo.mjs <pocketbase-url>` to rebuild the demo account.
 
-| Variable | Purpose |
-| --- | --- |
-| `PORT` | HTTP listener, defaults to 8000 |
-| `BASE_URL` | Canonical public URL, including HTTPS |
-| `ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call the app |
-| `SESSION_SECRET` | At least 24 characters; signs cookies and student access |
-| `DB_PATH` | SQLite file location |
-| `NODE_ENV` | Use `production` to serve the built app and secure cookies |
+- `bun run check` — type checking
+- `bun run test` — the domain tests
+- `bun run build` — a production build
 
-No secrets or database files should be committed. Back up both the SQLite file and teacher-generated JSON exports. Restart with `pm2 restart tap-to-track`; inspect status with `pm2 status`.
-
-## Privacy boundary
-
-Do not enter legal names, student emails, dates of birth, SIS identifiers, or other student PII. The roster template intentionally accepts only go-by display names and optional constrained avatars. Student routes return only the selected student's check-in, requests, and teacher-approved skill progress.
+The design behind the code is written down: `CONTEXT.md` (what the words mean),
+`docs/adr/` (the decisions worth explaining), and `docs/specs/` (what was built and why).
 
 ## License
 

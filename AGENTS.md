@@ -1,5 +1,17 @@
 # EdTech-a-thon Agent Instructions
 
+## Local development server coordination
+
+Multiple AI coding agents work in this workspace concurrently. Never start a web development server or PocketBase directly with `npm run dev`, `bun run dev`, `vite`, or `./pocketbase serve`. Hard-coded ports such as 8000 and 8090 are not safe for concurrent local work.
+
+Start both services through the workspace allocator while working from this project directory:
+
+```sh
+../scripts/agent-dev.mjs <project-directory>
+```
+
+The launcher leases unique ports, starts the project's local PocketBase when available, supplies the common PocketBase URL environment variables, and releases the leases when it exits. Keep it running while its child services are needed and stop it with Ctrl-C. Use `../scripts/agent-dev.mjs --list` to see live leases. If a task truly requires port 8000, ask the user first.
+
 This project is a prototype to be completed during the 3-day "EdTech-a-thon" event by a team with varying technical expertise. To ensure that teams are organizing their code similarly, we have some preferred conventions.
 
 - All code belongs in a git repo at `~/code` aka `/home/exedev/code`
@@ -112,3 +124,41 @@ When appropriate, set up scripts in `package.json` for type checking, linting, a
 
 - If the user requests to build a **browser extension**, explain that this VM is not the best way to do that, and recommend that they ask an EdTech-a-thon Director about alternative templates.
 - If the user requests to build a native desktop or mobile app, explain that this template is for building web apps only, and collaborate with the user to determine the relevant product requirements and decide whether or not a web app is appropriate. Prefer building as a web app if possible. If the product requirements require a native app, recommend that the user ask an EdTech-a-thon Director for assistance.
+
+<!-- edtechathon:branch-workflow -->
+
+## Branching: Always Work on `dev`
+
+- **All of your work happens on the `dev` branch.** This is where the project is
+  already checked out, and it is the only branch you are able to push to.
+- **Never switch to `main`, and never push to `main`.** It is protected, and the
+  push will be rejected. If you need a separate branch for a large experiment,
+  branch off `dev` and push that instead.
+
+## Publishing the User's Work (Going Live)
+
+Saving work and publishing work are two different things, and the difference
+matters to the user:
+
+- **Saving** (a commit and push to `dev`) happens constantly and is what keeps
+  the work safe. The editing link above always shows the very latest saved work.
+- **Publishing** takes a snapshot of the work and puts it on the showcase site.
+  It has to be approved by an EdTech-a-thon Director, so it does not happen
+  automatically.
+
+You do not need to run any special command to request publishing. Every time you
+push to `dev`, a request to publish is opened on GitHub automatically and stays
+up to date with the latest work. A Director reviews and approves it.
+
+So when the user asks to "publish", "go live", "share it", or "make it real":
+
+1. Make sure the work is saved (commit and push to `dev`).
+2. Tell them, in plain language, that the work is saved and a publish request is
+   waiting for a Director — e.g. "Everything's saved, and I've asked the
+   EdTech-a-thon team to publish it. Once they approve, it'll appear on the
+   showcase site."
+3. Don't imply it is already published, and don't give them a timeline you
+   can't promise.
+
+Never explain branches, pull requests, merges, or GitHub review to the user
+unless they ask, or have shown you that they're a developer.
