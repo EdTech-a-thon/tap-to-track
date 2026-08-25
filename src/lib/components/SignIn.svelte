@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { auth } from "$lib/auth.svelte";
 
-  let mode: "in" | "up" = $state("in");
+  // The homepage's "Get started" link asks for the sign-up form; everything else starts at sign-in.
+  let mode: "in" | "up" = $state(page.url.searchParams.has("signup") ? "up" : "in");
   let email = $state("");
   let password = $state("");
   let error = $state("");
@@ -24,6 +26,9 @@
 </script>
 
 <main class="page signin">
+  <!-- The way back out: the app's front door is a page of its own, so signing in must not
+  be a dead end for someone who arrived here before they were ready. -->
+  <a class="brand signin-brand" href="/"><span>T&amp;T</span><strong>Tap and Tally</strong></a>
   <section class="panel">
     <h1>{mode === "in" ? "Welcome back" : "Create your account"}</h1>
     <p>Your classes and your students' records are yours alone. Nobody else can see them.</p>

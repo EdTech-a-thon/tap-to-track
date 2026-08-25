@@ -24,13 +24,29 @@ export function today(): string {
   return dayKey(new Date());
 }
 
+/**
+ * The Taps the chart is currently showing. Clearing the chart between two lessons moves
+ * this starting line forward instead of deleting anything: the desks read plain again,
+ * while the reports still count everything that happened today. See ADR 0004.
+ */
+export function tapsSince(taps: Tap[], clearedAt: number | null): Tap[] {
+  if (!clearedAt) return taps;
+  return taps.filter((tap) => Date.parse(tap.createdAt) >= clearedAt);
+}
+
 /** Every Tap for one Student on one day. */
 export function tapsFor(taps: Tap[], day: string, studentId: string): Tap[] {
-  return taps.filter((tap) => tap.studentId === studentId && dayKey(tap.createdAt) === day);
+  return taps.filter(
+    (tap) => tap.studentId === studentId && dayKey(tap.createdAt) === day,
+  );
 }
 
 /** How many times each Behavior has been recorded for a Student today. */
-export function countsFor(taps: Tap[], day: string, studentId: string): Record<string, number> {
+export function countsFor(
+  taps: Tap[],
+  day: string,
+  studentId: string,
+): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const tap of tapsFor(taps, day, studentId)) {
     counts[tap.behaviorId] = (counts[tap.behaviorId] ?? 0) + 1;
@@ -39,13 +55,23 @@ export function countsFor(taps: Tap[], day: string, studentId: string): Record<s
 }
 
 /** A toggling Behavior is on when a Tap for it exists on this day. */
-export function isOn(taps: Tap[], day: string, studentId: string, behaviorId: string): boolean {
-  return tapsFor(taps, day, studentId).some((tap) => tap.behaviorId === behaviorId);
+export function isOn(
+  taps: Tap[],
+  day: string,
+  studentId: string,
+  behaviorId: string,
+): boolean {
+  return tapsFor(taps, day, studentId).some(
+    (tap) => tap.behaviorId === behaviorId,
+  );
 }
 
 /** A Student is away when a Behavior marked as "away" is toggled on for them. */
 export function isAway(
-  taps: Tap[], day: string, studentId: string, behaviors: Behavior[],
+  taps: Tap[],
+  day: string,
+  studentId: string,
+  behaviors: Behavior[],
 ): boolean {
   return behaviors
     .filter((behavior) => behavior.away)
@@ -58,14 +84,24 @@ export function isAway(
  * for someone who is not in the room would be a lie.
  */
 export function resolveTap(
-  taps: Tap[], day: string, studentId: string, behavior: Behavior, behaviors: Behavior[],
-): { action: "add" } | { action: "remove"; tapId: string } | { action: "refuse" } {
+  taps: Tap[],
+  day: string,
+  studentId: string,
+  behavior: Behavior,
+  behaviors: Behavior[],
+):
+  | { action: "add" }
+  | { action: "remove"; tapId: string }
+  | { action: "refuse" } {
   const away = isAway(taps, day, studentId, behaviors);
   if (away && !behavior.away) return { action: "refuse" };
 
   if (behavior.mode === "tally") return { action: "add" };
 
-  const existing = tapsFor(taps, day, studentId)
-    .find((tap) => tap.behaviorId === behavior.id);
-  return existing ? { action: "remove", tapId: existing.id } : { action: "add" };
+  const existing = tapsFor(taps, day, studentId).find(
+    (tap) => tap.behaviorId === behavior.id,
+  );
+  return existing
+    ? { action: "remove", tapId: existing.id }
+    : { action: "add" };
 }

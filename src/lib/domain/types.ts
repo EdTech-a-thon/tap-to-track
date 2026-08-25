@@ -19,6 +19,21 @@ export type Behavior = {
 /** One position in the Layout. Shared by every Class — see ADR 0002. */
 export type Seat = { id: string; x: number; y: number };
 
+/**
+ * A landmark in the Layout — the door, the board, the teacher's own desk. Holds no
+ * Student and is never tapped: it is there so a teacher glancing at the chart knows
+ * which way the room is facing. Sized freely, since a board is not desk-shaped.
+ */
+export type Anchor = {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** What is written in the box. "Door", "Board", "My desk". */
+  label: string;
+};
+
 /** A roster that meets repeatedly. */
 export type Class = {
   id: string;

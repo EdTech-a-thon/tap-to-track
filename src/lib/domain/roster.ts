@@ -33,10 +33,14 @@ function splitCsvLine(line: string): string[] {
   let quoted = false;
   for (let i = 0; i < line.length; i += 1) {
     const char = line[i];
-    if (quoted && char === '"' && line[i + 1] === '"') { cell += '"'; i += 1; }
-    else if (char === '"') quoted = !quoted;
-    else if (char === "," && !quoted) { cells.push(cell); cell = ""; }
-    else cell += char;
+    if (quoted && char === '"' && line[i + 1] === '"') {
+      cell += '"';
+      i += 1;
+    } else if (char === '"') quoted = !quoted;
+    else if (char === "," && !quoted) {
+      cells.push(cell);
+      cell = "";
+    } else cell += char;
   }
   cells.push(cell);
   return cells.map((value) => value.trim());
@@ -64,7 +68,9 @@ export function parseCsvRoster(text: string): string[] {
 }
 
 /** Every display name shared by more than one Student, with the positions holding it. */
-export function findCollisions(names: string[]): { name: string; indexes: number[] }[] {
+export function findCollisions(
+  names: string[],
+): { name: string; indexes: number[] }[] {
   const seen = new Map<string, number[]>();
   names.forEach((name, index) => {
     const key = name.toLocaleLowerCase();
@@ -79,7 +85,10 @@ export function findCollisions(names: string[]): { name: string; indexes: number
  * Which of the incoming names cannot be added as they stand — because they clash with a
  * Student already on the roster, or with each other.
  */
-export function clashingIndexes(existing: string[], incoming: string[]): number[] {
+export function clashingIndexes(
+  existing: string[],
+  incoming: string[],
+): number[] {
   const all = [...existing, ...incoming];
   const clashing = new Set<number>();
   for (const { indexes } of findCollisions(all)) {

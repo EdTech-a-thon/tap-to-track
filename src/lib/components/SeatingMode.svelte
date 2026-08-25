@@ -9,6 +9,7 @@
 
   let students = $derived(store.studentsIn(classId));
   let unseated = $derived(unseatedIn(store.students, classId));
+  let seated = $derived(students.length - unseated.length);
   let occupant = $derived(new Map(students.filter((s) => s.seatId).map((s) => [s.seatId, s])));
 
   function lift(event: PointerEvent, studentId: string, name: string) {
@@ -26,6 +27,16 @@
     if (carry) carry = { ...carry, x: event.clientX, y: event.clientY };
   }
 
+  /**
+   * Starting the seating over is one action rather than thirty drags. It asks first, since
+   * an afternoon's seating is easy to lose and nothing here can be undone from the toast.
+   */
+  function emptyDesks() {
+    const name = store.classes.find((cls) => cls.id === classId)?.name ?? "this class";
+    if (!confirm(`Take all ${seated} student${seated === 1 ? "" : "s"} in ${name} out of their desks? The desks stay where they are, and everyone stays on the roster.`)) return;
+    store.unseatClass(classId);
+  }
+
   function drop(event: PointerEvent) {
     if (!carry) return;
     const under = document.elementFromPoint(event.clientX, event.clientY);
@@ -37,6 +48,17 @@
 </script>
 
 <svelte:window onpointermove={drag} onpointerup={drop} onpointercancel={drop} />
+
+<!-- The class sits on the same row here as it does while teaching, so switching
+class is always in the same place just above the room. -->
+<div class="seating-bar">
+  <label class="class-picker">Class
+    <select bind:value={store.activeClassId}>
+      {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
+    </select>
+  </label>
+  <button class="secondary" disabled={!seated} onclick={emptyDesks}>Unseat all students</button>
+</div>
 
 <p class="hint">
   Drag a student onto a desk. Dropping onto a taken desk swaps the two. Dragging someone

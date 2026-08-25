@@ -7,7 +7,7 @@
   import { today } from "$lib/domain/taps";
   import { store } from "$lib/store.svelte";
   import OutboxBadge from "$lib/components/OutboxBadge.svelte";
-  import { leaveTeaching, ui } from "$lib/ui.svelte";
+  import { enterTeaching, leaveTeaching, ui } from "$lib/ui.svelte";
   import type { Student } from "$lib/domain/types";
 
   let { classId }: { classId: string } = $props();
@@ -16,7 +16,7 @@
   let highlightId = $state<string | null>(null);
 
   // The Highlight is a per-Class habit, so each class opens showing what matters in it.
-  const remembered = (id: string) => `tap-to-track-highlight-${id}`;
+  const remembered = (id: string) => `tap-and-tally-highlight-${id}`;
   $effect(() => {
     highlightId = localStorage.getItem(remembered(classId));
   });
@@ -44,7 +44,7 @@
 
   function shade(student: Student | undefined) {
     if (!student) return { away: false } as ReturnType<typeof seatShade>;
-    return seatShade(store.taps, day, student.id, highlight, store.behaviors);
+    return seatShade(store.chartTaps(classId), day, student.id, highlight, store.behaviors);
   }
 </script>
 
@@ -52,23 +52,36 @@
 
 <div class="tracking" class:teaching={ui.teaching}>
   <div class="tracking-bar">
-    {#if ui.teaching}
+    <div class="bar-side"></div>
+
+    <div class="bar-center">
       <label class="class-picker">Class
         <select bind:value={store.activeClassId}>
           {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
         </select>
       </label>
-    {/if}
-    <HighlightPicker {classId} bind:value={
-      () => highlightId,
-      (next) => { highlightId = next; remember(next); }
-    } />
-    {#if ui.teaching}
-      <div class="bar-end">
+      <!-- Choosing what the colors show and clearing them are the same errand, so they
+      sit in one group. Resetting asks nothing first: only the colors go, and every tap
+      stays in the reports. -->
+      <div class="display-group">
+        <HighlightPicker {classId} bind:value={
+          () => highlightId,
+          (next) => { highlightId = next; remember(next); }
+        } />
+        <button class="secondary" onclick={() => store.clearChart(classId)}>
+          Reset desk colors
+        </button>
+      </div>
+    </div>
+
+    <div class="bar-end">
+      {#if ui.teaching}
         <OutboxBadge />
         <button class="leave" onclick={leaveTeaching}>Exit full screen</button>
-      </div>
-    {/if}
+      {:else}
+        <button class="primary" onclick={enterTeaching}>Full screen</button>
+      {/if}
+    </div>
   </div>
 
   <SeatCanvas

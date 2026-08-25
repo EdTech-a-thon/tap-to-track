@@ -1,25 +1,35 @@
 <script lang="ts">
-  import { SEAT_SIZE, fitScale, layoutExtent, placeSeat, seatBounds } from "$lib/domain/seating";
+  import {
+    SEAT_SIZE, fitScale, layoutExtent, placeSeat, roomBounds, sizeAnchor,
+  } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
-  import type { Seat } from "$lib/domain/types";
+  import type { Anchor, Seat } from "$lib/domain/types";
 
-  let { snapping = true, draggable = false, fill = false, selectedId = null, seatLabel, onSeatClick }: {
+  /** What the teacher has picked up: a desk to move, an Anchor to move, or its corner. */
+  type Grab =
+    | { kind: "seat" | "anchor"; id: string; offsetX: number; offsetY: number }
+    | { kind: "size"; id: string };
+
+  let { snapping = true, draggable = false, fill = false, selected = null,
+    seatLabel, onSeatClick, onAnchorClick }: {
     snapping?: boolean;
     draggable?: boolean;
     /** Grow the desks to fill the space the canvas is given, keeping their shape and spacing. */
     fill?: boolean;
-    selectedId?: string | null;
+    /** The one piece of furniture being worked on, whichever kind it is. */
+    selected?: { kind: "seat" | "anchor"; id: string } | null;
     seatLabel?: (seat: Seat) => { text: string; color?: string; faded?: boolean; strong?: boolean };
     onSeatClick?: (seat: Seat) => void;
+    onAnchorClick?: (anchor: Anchor) => void;
   } = $props();
 
-  let dragging = $state<{ id: string; offsetX: number; offsetY: number } | null>(null);
+  let dragging = $state<Grab | null>(null);
   let room = $state<HTMLDivElement>();
   let box = $state({ width: 0, height: 0 });
 
-  let extent = $derived(layoutExtent(store.seats));
-  let bounds = $derived(seatBounds(store.seats));
-  // Filling shrink-wraps the room around the desks first, so the empty margins don't take space.
+  let extent = $derived(layoutExtent(store.seats, store.anchors));
+  let bounds = $derived(roomBounds(store.seats, store.anchors));
+  // Filling shrink-wraps the room around the furniture first, so the empty margins don't take space.
   let size = $derived(fill ? bounds : extent);
   let scale = $derived(fill ? fitScale(bounds, box) : 1);
 
@@ -32,27 +42,59 @@
     };
   }
 
-  function start(event: PointerEvent, seat: Seat) {
+  function hold(event: PointerEvent, held: Grab) {
     if (!draggable) return;
-    const spot = at(event);
-    dragging = { id: seat.id, offsetX: spot.x - seat.x, offsetY: spot.y - seat.y };
+    dragging = held;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  /** Picking a thing up remembers where in it the finger landed, so it doesn't jump. */
+  function lift(event: PointerEvent, kind: "seat" | "anchor", piece: { id: string; x: number; y: number }) {
+    const spot = at(event);
+    hold(event, { kind, id: piece.id, offsetX: spot.x - piece.x, offsetY: spot.y - piece.y });
   }
 
   function move(event: PointerEvent) {
     if (!dragging || !room) return;
     const point = at(event);
+    if (dragging.kind === "size") {
+      // The corner is dragged, so the far edges follow the pointer and the origin stays put.
+      const anchor = store.anchors.find((item) => item.id === dragging!.id);
+      if (!anchor) return;
+      const next = sizeAnchor(point.x - anchor.x, point.y - anchor.y, snapping);
+      store.anchors = store.anchors.map((item) =>
+        (item.id === anchor.id ? { ...item, ...next } : item));
+      return;
+    }
+    // Anchors land by the same rule as desks: on the grid, never off the top or left.
     const spot = placeSeat(point.x - dragging.offsetX, point.y - dragging.offsetY, snapping);
-    store.seats = store.seats.map((seat) =>
-      seat.id === dragging!.id ? { ...seat, ...spot } : seat);
+    if (dragging.kind === "seat") {
+      store.seats = store.seats.map((seat) =>
+        seat.id === dragging!.id ? { ...seat, ...spot } : seat);
+    } else {
+      store.anchors = store.anchors.map((anchor) =>
+        anchor.id === dragging!.id ? { ...anchor, ...spot } : anchor);
+    }
   }
 
+  /** Dragging moves the furniture on screen as it goes; letting go is what writes it down. */
   function end() {
     if (!dragging) return;
-    const seat = store.seats.find((item) => item.id === dragging!.id);
-    if (seat) store.moveSeat(seat.id, seat.x, seat.y);
+    if (dragging.kind === "seat") {
+      const seat = store.seats.find((item) => item.id === dragging!.id);
+      if (seat) store.moveSeat(seat.id, seat.x, seat.y);
+    } else {
+      const anchor = store.anchors.find((item) => item.id === dragging!.id);
+      if (anchor) {
+        store.updateAnchor(anchor.id, {
+          x: anchor.x, y: anchor.y, width: anchor.width, height: anchor.height,
+        });
+      }
+    }
     dragging = null;
   }
+
+  let held = $derived(dragging && dragging.kind !== "size" ? dragging.id : null);
 </script>
 
 <div class="canvas" class:snapping class:fill
@@ -62,13 +104,41 @@
   <div class="room" bind:this={room}
     style:width="{size.width}px" style:height="{size.height}px"
     style:scale={fill ? scale : null}>
+    <!-- Anchors are drawn under the desks: they are the room, not the furniture in it. -->
+    {#each store.anchors as anchor (anchor.id)}
+      {@const chosen = selected?.kind === "anchor" && selected.id === anchor.id}
+      <div class="anchor" class:movable={draggable} class:dragging={held === anchor.id}
+        class:selected={chosen} class:blank={!anchor.label.trim()}
+        style:left="{anchor.x - (fill ? bounds.x : 0)}px"
+        style:top="{anchor.y - (fill ? bounds.y : 0)}px"
+        style:width="{anchor.width}px" style:height="{anchor.height}px">
+        <!-- Anchors are furniture, not controls: outside the layout editor they are not
+        something to tab to, and nothing happens if you reach one. -->
+        <button class="anchor-face" tabindex={draggable ? 0 : -1}
+          onpointerdown={(event) => lift(event, "anchor", anchor)}
+          onpointermove={move}
+          onpointerup={end}
+          onpointercancel={end}
+          onclick={() => !dragging && onAnchorClick?.(anchor)}
+        >{anchor.label.trim() || "Anchor"}</button>
+        {#if chosen && draggable}
+          <button class="anchor-size" aria-label="Resize {anchor.label || 'this anchor'}"
+            onpointerdown={(event) => hold(event, { kind: "size", id: anchor.id })}
+            onpointermove={move}
+            onpointerup={end}
+            onpointercancel={end}
+          ></button>
+        {/if}
+      </div>
+    {/each}
+
     {#each store.seats as seat (seat.id)}
       {@const label = seatLabel?.(seat)}
       <button
         class="seat"
         data-seat-id={seat.id}
-        class:dragging={dragging?.id === seat.id}
-        class:selected={selectedId === seat.id}
+        class:dragging={held === seat.id}
+        class:selected={selected?.kind === "seat" && selected.id === seat.id}
         class:faded={label?.faded}
         class:empty={!label?.text}
         class:strong={label?.strong}
@@ -76,7 +146,7 @@
         style:top="{seat.y - (fill ? bounds.y : 0)}px"
         style:width="{SEAT_SIZE}px" style:height="{SEAT_SIZE}px"
         style:background={label?.color}
-        onpointerdown={(event) => start(event, seat)}
+        onpointerdown={(event) => lift(event, "seat", seat)}
         onpointermove={move}
         onpointerup={end}
         onpointercancel={end}

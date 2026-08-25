@@ -1,11 +1,29 @@
 import { expect, test } from "vitest";
-import { countsFor, dayKey, isAway, isOn, popupGrid, resolveTap } from "./taps";
+import {
+  countsFor,
+  dayKey,
+  isAway,
+  isOn,
+  popupGrid,
+  resolveTap,
+  tapsSince,
+} from "./taps";
 import type { Behavior, Tap } from "./types";
 
-const behavior = (id: string, over: Partial<Behavior> = {}): Behavior =>
-  ({ id, name: id, color: "#000", mode: "tally", position: 0, ...over });
-const tap = (id: string, behaviorId: string, studentId = "maya", at = "2026-01-01T09:00:00"): Tap =>
-  ({ id, studentId, behaviorId, createdAt: at });
+const behavior = (id: string, over: Partial<Behavior> = {}): Behavior => ({
+  id,
+  name: id,
+  color: "#000",
+  mode: "tally",
+  position: 0,
+  ...over,
+});
+const tap = (
+  id: string,
+  behaviorId: string,
+  studentId = "maya",
+  at = "2026-01-01T09:00:00",
+): Tap => ({ id, studentId, behaviorId, createdAt: at });
 
 const TODAY = "2026-01-01";
 const YESTERDAY = "2025-12-31T09:00:00";
@@ -30,23 +48,34 @@ test("a day is the teacher's own calendar day, not UTC's", () => {
 });
 
 test("counts are per Student per day", () => {
-  const taps = [tap("1", "participation"), tap("2", "participation"), tap("3", "participation", "sam")];
+  const taps = [
+    tap("1", "participation"),
+    tap("2", "participation"),
+    tap("3", "participation", "sam"),
+  ];
   expect(countsFor(taps, TODAY, "maya")).toEqual({ participation: 2 });
 });
 
 test("yesterday's taps are not counted today", () => {
-  expect(countsFor([tap("1", "participation", "maya", YESTERDAY)], TODAY, "maya")).toEqual({});
+  expect(
+    countsFor([tap("1", "participation", "maya", YESTERDAY)], TODAY, "maya"),
+  ).toEqual({});
 });
 
 test("a tallying Behavior adds one every time", () => {
   const taps = [tap("1", "participation")];
-  expect(resolveTap(taps, TODAY, "maya", participation, all)).toEqual({ action: "add" });
+  expect(resolveTap(taps, TODAY, "maya", participation, all)).toEqual({
+    action: "add",
+  });
 });
 
 test("a toggling Behavior turns on, then off again", () => {
   expect(resolveTap([], TODAY, "maya", onTask, all)).toEqual({ action: "add" });
   const on = [tap("t1", "onTask")];
-  expect(resolveTap(on, TODAY, "maya", onTask, all)).toEqual({ action: "remove", tapId: "t1" });
+  expect(resolveTap(on, TODAY, "maya", onTask, all)).toEqual({
+    action: "remove",
+    tapId: "t1",
+  });
   expect(isOn(on, TODAY, "maya", "onTask")).toBe(true);
 });
 
@@ -57,16 +86,48 @@ test("a Student marked away is away", () => {
 
 test("a Student who is away cannot be recorded for anything else", () => {
   const taps = [tap("t1", "absent")];
-  expect(resolveTap(taps, TODAY, "maya", participation, all)).toEqual({ action: "refuse" });
-  expect(resolveTap(taps, TODAY, "maya", onTask, all)).toEqual({ action: "refuse" });
+  expect(resolveTap(taps, TODAY, "maya", participation, all)).toEqual({
+    action: "refuse",
+  });
+  expect(resolveTap(taps, TODAY, "maya", onTask, all)).toEqual({
+    action: "refuse",
+  });
 });
 
 test("a Student who is away can always be brought back", () => {
   const taps = [tap("t1", "absent")];
-  expect(resolveTap(taps, TODAY, "maya", absent, all)).toEqual({ action: "remove", tapId: "t1" });
+  expect(resolveTap(taps, TODAY, "maya", absent, all)).toEqual({
+    action: "remove",
+    tapId: "t1",
+  });
 });
 
 test("being away yesterday does not lock today", () => {
   const taps = [tap("t1", "absent", "maya", YESTERDAY)];
-  expect(resolveTap(taps, TODAY, "maya", participation, all)).toEqual({ action: "add" });
+  expect(resolveTap(taps, TODAY, "maya", participation, all)).toEqual({
+    action: "add",
+  });
+});
+
+test("clearing the chart hides earlier taps without deleting them", () => {
+  const taps = [
+    tap("t1", "participation", "maya", "2026-01-01T09:00:00Z"),
+    tap("t2", "participation", "maya", "2026-01-01T11:00:00Z"),
+  ];
+  const cleared = Date.parse("2026-01-01T10:00:00Z");
+
+  expect(tapsSince(taps, null)).toHaveLength(2);
+  expect(tapsSince(taps, cleared).map((item) => item.id)).toEqual(["t2"]);
+  expect(countsFor(tapsSince(taps, cleared), TODAY, "maya")).toEqual({
+    participation: 1,
+  });
+  expect(taps).toHaveLength(2);
+});
+
+test("clearing the chart brings a student marked away back onto the desks", () => {
+  const taps = [tap("t1", "absent", "maya", "2026-01-01T09:00:00Z")];
+  const cleared = Date.parse("2026-01-01T10:00:00Z");
+
+  expect(isAway(taps, TODAY, "maya", all)).toBe(true);
+  expect(isAway(tapsSince(taps, cleared), TODAY, "maya", all)).toBe(false);
 });

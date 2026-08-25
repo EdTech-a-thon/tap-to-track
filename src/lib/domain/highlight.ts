@@ -16,7 +16,10 @@ export function shadeStep(count: number): 0 | 1 | 2 | 3 {
 const STEP_ALPHA = ["00", "40", "80", "ff"];
 
 /** The Behavior's own colour at the strength the count earns. */
-export function shadeColor(color: string, step: 0 | 1 | 2 | 3): string | undefined {
+export function shadeColor(
+  color: string,
+  step: 0 | 1 | 2 | 3,
+): string | undefined {
   if (step === 0) return undefined;
   return `${color}${STEP_ALPHA[step]}`;
 }

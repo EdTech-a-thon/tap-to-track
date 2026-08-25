@@ -32,7 +32,7 @@
 
 <h2>Add students</h2>
 <p class="hint">
-  Tap-to-Track keeps a first name and up to three letters of a surname — never a full
+  Tap and Tally keeps a first name and up to three letters of a surname — never a full
   name. If two students would read the same, you'll be asked to add a letter.
 </p>
 
