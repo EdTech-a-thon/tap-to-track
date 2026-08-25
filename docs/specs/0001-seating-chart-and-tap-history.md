@@ -15,7 +15,7 @@ actual room they can tap during a lesson, and a record underneath it that accumu
 
 ## Solution
 
-Tap-to-Track becomes a seating chart on top of a real database.
+Tap and Tally becomes a seating chart on top of a real database.
 
 The teacher draws their room once — dragging Seats into position on a computer, with
 snapping so rows come out straight. Drawing the room and deciding who sits in it are
@@ -100,60 +100,60 @@ screen as a CSV.
     ended for that to be true. See ADR 0004.
 30. As a teacher, I want a tap to record the moment I make it, so that nothing stands
     between me and the child it was about.
-34. As a teacher, I want tapping a face to open a large popup, so that I can hit it
+31. As a teacher, I want tapping a face to open a large popup, so that I can hit it
     without looking while I am teaching.
-35. As a teacher, I want the popup laid out as a grid that fits the number of Behaviors,
+32. As a teacher, I want the popup laid out as a grid that fits the number of Behaviors,
     so that the buttons are as large as they can be.
-36. As a teacher, I want the popup to show the student's counts for today, so that
+33. As a teacher, I want the popup to show the student's counts for today, so that
     I can see what I have already recorded before adding to it.
-37. As a teacher, I want a close button on the popup, so that I can dismiss it without
+34. As a teacher, I want a close button on the popup, so that I can dismiss it without
     recording anything.
-38. As a teacher, I want each press to record one Tap, so that the history is a list of
+35. As a teacher, I want each press to record one Tap, so that the history is a list of
     what happened rather than a total I cannot unpick.
-39. As a teacher, I want to undo a tap immediately after making it, so that hitting the
+36. As a teacher, I want to undo a tap immediately after making it, so that hitting the
     wrong face in a grid of thirty is recoverable.
-40. As a teacher, I want to mark a student absent with a tap, so that the room on screen
+37. As a teacher, I want to mark a student absent with a tap, so that the room on screen
     matches the room in front of me.
-41. As a teacher, I want absent students shown dark grey whatever else the chart is
+38. As a teacher, I want absent students shown dark grey whatever else the chart is
     showing, so that empty desks never read as neglected children.
-42. As a teacher, I want an absent student's other buttons disabled, so that I cannot
+39. As a teacher, I want an absent student's other buttons disabled, so that I cannot
     record participation for someone who is not there.
-43. As a teacher, I want to un-mark a student absent, so that a late arrival can be
+40. As a teacher, I want to un-mark a student absent, so that a late arrival can be
     tracked for the rest of the lesson.
-44. As a teacher, I want to choose which Behavior colours the chart, so that I can switch
+41. As a teacher, I want to choose which Behavior colours the chart, so that I can switch
     between who I have not called on and who has needed redirecting.
-45. As a teacher, I want the chart shaded by how many times a student has been marked,
+42. As a teacher, I want the chart shaded by how many times a student has been marked,
     so that the child I have called on six times does not look like the one I called on
     once.
-46. As a teacher, I want my Highlight choice remembered per Class, so that each period
+43. As a teacher, I want my Highlight choice remembered per Class, so that each period
     opens showing what I care about in it.
-47. As a teacher, I want a Teaching mode that fills the screen and hides the controls, so
+44. As a teacher, I want a Teaching mode that fills the screen and hides the controls, so
     that during a lesson there is nothing on screen but my room.
-48. As a teacher, I want one button to fill the screen with my room, so that getting
+45. As a teacher, I want one button to fill the screen with my room, so that getting
     ready to teach is a single action.
-49. As a teacher, I want to leave Teaching mode without losing anything, so that
+46. As a teacher, I want to leave Teaching mode without losing anything, so that
     checking something mid-lesson does not cost me the lesson's record.
-50. As a teacher, I want a visible way out of Teaching mode at all times, so that I am
+47. As a teacher, I want a visible way out of Teaching mode at all times, so that I am
     never stranded in a full-screen app in front of thirty children.
-51. As a teacher, I want my taps to register instantly even when the wifi drops, so that
+48. As a teacher, I want my taps to register instantly even when the wifi drops, so that
     a bad connection does not cost me a period of data.
-52. As a teacher, I want to see that some taps have not been saved yet, so that I know
+49. As a teacher, I want to see that some taps have not been saved yet, so that I know
     the app is catching up rather than silently losing things.
-53. As a teacher, I want an analytics table of counts per student, so that I can see
+50. As a teacher, I want an analytics table of counts per student, so that I can see
     patterns I cannot hold in my head.
-54. As a teacher, I want to switch the table between the last week, the last month and
+51. As a teacher, I want to switch the table between the last week, the last month and
     all time, so that I can tell a bad fortnight from a bad term.
-55. As a teacher, I want to filter the table by Behavior, so that I can look at redirects
+52. As a teacher, I want to filter the table by Behavior, so that I can look at redirects
     without participation in the way.
-56. As a teacher, I want to filter the table by Class, so that I can look at one period
+53. As a teacher, I want to filter the table by Class, so that I can look at one period
     or several at once.
-57. As a teacher, I want a Class column in the table, so that a multi-class view still
+54. As a teacher, I want a Class column in the table, so that a multi-class view still
     tells me who is who.
-58. As a teacher, I want to sort the table by any column, so that I can find the top and
+55. As a teacher, I want to sort the table by any column, so that I can find the top and
     bottom of a Behavior immediately.
-59. As a teacher, I want to export exactly the table I am looking at as a CSV, so that
+56. As a teacher, I want to export exactly the table I am looking at as a CSV, so that
     what I share matches what I saw.
-60. As a teacher, I want to see which students have no taps at all in a window, so that
+57. As a teacher, I want to see which students have no taps at all in a window, so that
     the children I overlook are the ones the table makes obvious.
 
 ## Implementation Decisions
@@ -285,7 +285,7 @@ establishes the project's first testing seam rather than following an existing o
 **One seam: a pure domain module.** Everything in this feature that has a right answer
 lives in plain TypeScript functions with no PocketBase client, no Svelte components and
 no browser APIs, and is tested directly. The rule for what belongs there is whether a
-wrong answer would be a wrong *number* or a wrong *record* — not whether it is on screen.
+wrong answer would be a wrong _number_ or a wrong _record_ — not whether it is on screen.
 
 - Seat snapping: a dragged coordinate resolves to the same snapped coordinate, and
   releasing snapping returns the raw one.

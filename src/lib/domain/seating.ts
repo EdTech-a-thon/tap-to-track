@@ -28,8 +28,15 @@ export function snap(value: number, snapping: boolean, grid = GRID): number {
 }
 
 /** Where a dragged Seat lands: snapped if snapping is on, never off the top or left. */
-export function placeSeat(x: number, y: number, snapping: boolean): { x: number; y: number } {
-  return { x: Math.max(0, snap(x, snapping)), y: Math.max(0, snap(y, snapping)) };
+export function placeSeat(
+  x: number,
+  y: number,
+  snapping: boolean,
+): { x: number; y: number } {
+  return {
+    x: Math.max(0, snap(x, snapping)),
+    y: Math.max(0, snap(y, snapping)),
+  };
 }
 
 /** How big a dragged corner leaves an Anchor: on the grid, never too small to read. */
@@ -48,7 +55,10 @@ export function sizeAnchor(
  * Where a new Seat appears: to the right of the last one, wrapping onto a new row so a
  * teacher adding thirty desks gets something room-shaped rather than a single long line.
  */
-export function nextSeatSpot(seats: Seat[], perRow = 6): { x: number; y: number } {
+export function nextSeatSpot(
+  seats: Seat[],
+  perRow = 6,
+): { x: number; y: number } {
   const step = SEAT_SIZE + GRID * 2;
   const index = seats.length;
   return { x: (index % perRow) * step, y: Math.floor(index / perRow) * step };
@@ -58,19 +68,34 @@ export function nextSeatSpot(seats: Seat[], perRow = 6): { x: number; y: number 
  * Where a new Anchor appears: clear of everything already in the room, so it is never
  * born underneath a desk. The teacher drags it to the wall it belongs against.
  */
-export function nextAnchorSpot(seats: Seat[], anchors: Anchor[]): { x: number; y: number } {
+export function nextAnchorSpot(
+  seats: Seat[],
+  anchors: Anchor[],
+): { x: number; y: number } {
   const boxes = boxesOf(seats, anchors);
   if (!boxes.length) return { x: 0, y: 0 };
-  return { x: 0, y: Math.max(...boxes.map((box) => box.y + box.height)) + GRID * 2 };
+  return {
+    x: 0,
+    y: Math.max(...boxes.map((box) => box.y + box.height)) + GRID * 2,
+  };
 }
 
 /** How far the Layout extends, so the canvas can be sized to hold all of it. */
-export function layoutExtent(seats: Seat[], anchors: Anchor[] = []): { width: number; height: number } {
+export function layoutExtent(
+  seats: Seat[],
+  anchors: Anchor[] = [],
+): { width: number; height: number } {
   const step = SEAT_SIZE + GRID * 2;
   const boxes = boxesOf(seats, anchors);
   return {
-    width: Math.max(step * 6, ...boxes.map((box) => box.x + box.width + GRID * 2)),
-    height: Math.max(step * 4, ...boxes.map((box) => box.y + box.height + GRID * 2)),
+    width: Math.max(
+      step * 6,
+      ...boxes.map((box) => box.x + box.width + GRID * 2),
+    ),
+    height: Math.max(
+      step * 4,
+      ...boxes.map((box) => box.y + box.height + GRID * 2),
+    ),
   };
 }
 

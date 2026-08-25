@@ -1,4 +1,4 @@
-# Tap-to-Track
+# Tap and Tally
 
 A touch-first tool for recording what happens in a classroom as it happens: a teacher
 taps a student on a seating chart and records a behavior, without breaking the flow of

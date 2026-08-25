@@ -46,17 +46,22 @@ test("no two desks in a choice land on top of each other", () => {
 
 test("the choices really are wider and deeper than each other", () => {
   for (const desks of [7, 12, 22, 30, 60]) {
-    expect(ratio("wide", desks), `wide beats balanced at ${desks}`)
-      .toBeGreaterThan(ratio("balanced", desks));
-    expect(ratio("balanced", desks), `balanced beats deep at ${desks}`)
-      .toBeGreaterThan(ratio("deep", desks));
+    expect(
+      ratio("wide", desks),
+      `wide beats balanced at ${desks}`,
+    ).toBeGreaterThan(ratio("balanced", desks));
+    expect(
+      ratio("balanced", desks),
+      `balanced beats deep at ${desks}`,
+    ).toBeGreaterThan(ratio("deep", desks));
   }
 });
 
 test("no two choices offer the same room", () => {
   for (const desks of [7, 12, 22, 30]) {
     const shapes = layoutChoices(desks).map((choice) =>
-      JSON.stringify(choice.seats.map((spot) => [spot.x, spot.y]).sort()));
+      JSON.stringify(choice.seats.map((spot) => [spot.x, spot.y]).sort()),
+    );
     expect(new Set(shapes).size, `${desks} desks`).toBe(shapes.length);
   }
 });
@@ -64,13 +69,20 @@ test("no two choices offer the same room", () => {
 test("a horseshoe is hollow, and a handful of desks is just a row", () => {
   const u = layoutChoices(24).find((choice) => choice.id === "horseshoe")!;
   const box = choiceBounds(u.seats);
-  const middle = u.seats.filter((spot) =>
-    spot.x > box.x + SEAT_SIZE && spot.x < box.x + box.width - SEAT_SIZE * 2 &&
-    spot.y < box.y + box.height - SEAT_SIZE);
+  const middle = u.seats.filter(
+    (spot) =>
+      spot.x > box.x + SEAT_SIZE &&
+      spot.x < box.x + box.width - SEAT_SIZE * 2 &&
+      spot.y < box.y + box.height - SEAT_SIZE,
+  );
   expect(middle).toEqual([]);
-  const arms = u.seats.filter((spot) => spot.y < box.y + box.height - SEAT_SIZE);
+  const arms = u.seats.filter(
+    (spot) => spot.y < box.y + box.height - SEAT_SIZE,
+  );
   const left = arms.filter((spot) => spot.x === box.x);
-  expect(left.length, "the two arms are the same length").toBe(arms.length - left.length);
+  expect(left.length, "the two arms are the same length").toBe(
+    arms.length - left.length,
+  );
   const few = layoutChoices(4).find((choice) => choice.id === "horseshoe")!;
   expect(new Set(few.seats.map((spot) => spot.y)).size).toBe(1);
 });

@@ -21,24 +21,35 @@ export function windowStart(window: Window, now: number): number | null {
  * One row per Student, including Students with no Taps at all — the children being
  * overlooked are the point of looking.
  */
-export function aggregate(
-  { taps, students, classes, behaviorIds, classIds, window, now }: {
-    taps: Tap[];
-    students: Student[];
-    classes: Class[];
-    behaviorIds: string[];
-    classIds: string[];
-    window: Window;
-    now: number;
-  },
-): Row[] {
+export function aggregate({
+  taps,
+  students,
+  classes,
+  behaviorIds,
+  classIds,
+  window,
+  now,
+}: {
+  taps: Tap[];
+  students: Student[];
+  classes: Class[];
+  behaviorIds: string[];
+  classIds: string[];
+  window: Window;
+  now: number;
+}): Row[] {
   const from = windowStart(window, now);
   const className = new Map(classes.map((cls) => [cls.id, cls.name]));
-  const inScope = students.filter((student) => classIds.includes(student.classId));
+  const inScope = students.filter((student) =>
+    classIds.includes(student.classId),
+  );
   const wanted = new Set(behaviorIds);
 
-  const counted = taps.filter((tap) =>
-    wanted.has(tap.behaviorId) && (from === null || Date.parse(tap.createdAt) >= from));
+  const counted = taps.filter(
+    (tap) =>
+      wanted.has(tap.behaviorId) &&
+      (from === null || Date.parse(tap.createdAt) >= from),
+  );
 
   return inScope.map((student) => {
     const counts: Record<string, number> = {};
@@ -59,32 +70,44 @@ export function aggregate(
   });
 }
 
-export type SortKey = { column: "student" | "class" | string; descending: boolean };
+export type SortKey = {
+  column: "student" | "class" | string;
+  descending: boolean;
+};
 
 export function sortRows(rows: Row[], sort: SortKey): Row[] {
   const value = (row: Row) =>
-    sort.column === "student" ? row.studentName
-      : sort.column === "class" ? row.className
-      : row.counts[sort.column] ?? 0;
+    sort.column === "student"
+      ? row.studentName
+      : sort.column === "class"
+        ? row.className
+        : (row.counts[sort.column] ?? 0);
   return [...rows].sort((a, b) => {
     const left = value(a);
     const right = value(b);
-    const order = typeof left === "string" && typeof right === "string"
-      ? left.localeCompare(right)
-      : Number(left) - Number(right);
+    const order =
+      typeof left === "string" && typeof right === "string"
+        ? left.localeCompare(right)
+        : Number(left) - Number(right);
     return sort.descending ? -order : order;
   });
 }
 
 /** The visible table, exactly as shown, so what gets shared matches what was seen. */
 export function toCsv(rows: Row[], behaviors: Behavior[]): string {
-  const header = ["Student", "Class", ...behaviors.map((behavior) => behavior.name)];
+  const header = [
+    "Student",
+    "Class",
+    ...behaviors.map((behavior) => behavior.name),
+  ];
   const lines = rows.map((row) => [
     row.studentName,
     row.className,
     ...behaviors.map((behavior) => String(row.counts[behavior.id] ?? 0)),
   ]);
-  return [header, ...lines].map((cells) => cells.map(escapeCell).join(",")).join("\n");
+  return [header, ...lines]
+    .map((cells) => cells.map(escapeCell).join(","))
+    .join("\n");
 }
 
 function escapeCell(value: string): string {

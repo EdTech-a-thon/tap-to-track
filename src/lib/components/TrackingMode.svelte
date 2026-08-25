@@ -16,7 +16,7 @@
   let highlightId = $state<string | null>(null);
 
   // The Highlight is a per-Class habit, so each class opens showing what matters in it.
-  const remembered = (id: string) => `tap-to-track-highlight-${id}`;
+  const remembered = (id: string) => `tap-and-tally-highlight-${id}`;
   $effect(() => {
     highlightId = localStorage.getItem(remembered(classId));
   });

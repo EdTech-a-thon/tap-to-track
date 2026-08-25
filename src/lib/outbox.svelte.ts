@@ -4,7 +4,9 @@ type Op =
   | { kind: "create"; id: string; data: Record<string, unknown> }
   | { kind: "delete"; id: string };
 
-const KEY = "tap-to-track-outbox";
+const KEY = "tap-and-tally-outbox";
+/** The key this queue used before the rename; taps left in it are still owed a save. */
+const OLD_KEY = "tap-to-track-outbox";
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 
 /** PocketBase ids are 15 lowercase alphanumerics, so we can mint one before saving. */
@@ -27,7 +29,10 @@ class Outbox {
     if (this.started) return;
     this.started = true;
     try {
-      this.pending = JSON.parse(localStorage.getItem(KEY) ?? "[]");
+      const stored =
+        localStorage.getItem(KEY) ?? localStorage.getItem(OLD_KEY) ?? "[]";
+      this.pending = JSON.parse(stored);
+      localStorage.removeItem(OLD_KEY);
     } catch {
       this.pending = [];
     }
@@ -51,7 +56,9 @@ class Outbox {
    * create and then a delete for a row nobody ever saw would be pointless.
    */
   cancelCreate(id: string): boolean {
-    const queued = this.pending.some((op) => op.kind === "create" && op.id === id);
+    const queued = this.pending.some(
+      (op) => op.kind === "create" && op.id === id,
+    );
     if (!queued) return false;
     this.pending = this.pending.filter((op) => op.id !== id);
     this.save();
@@ -66,7 +73,8 @@ class Outbox {
       while (this.pending.length) {
         const [next] = this.pending;
         try {
-          if (next.kind === "create") await pb.collection("taps").create({ id: next.id, ...next.data });
+          if (next.kind === "create")
+            await pb.collection("taps").create({ id: next.id, ...next.data });
           else await pb.collection("taps").delete(next.id);
         } catch (error) {
           if (!isMissing(error)) break; // Offline or server trouble: keep it and retry later.

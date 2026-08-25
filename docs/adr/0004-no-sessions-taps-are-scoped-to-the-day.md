@@ -1,6 +1,6 @@
 # No Sessions: a Tap is scoped to the day it happened
 
-Tap-to-Track used to make a teacher start a class and end it. That Session was the scope
+Tap and Tally used to make a teacher start a class and end it. That Session was the scope
 for everything on the chart — counts in the popup, toggles like "absent", the shading on
 the desks — and every Tap was stored pointing at one.
 

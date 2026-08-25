@@ -132,5 +132,7 @@ export function layoutChoices(desks: number): LayoutChoice[] {
 
 /** The box a choice's desks fill, so a preview of it can be drawn to scale. */
 export function choiceBounds(seats: Spot[]): Box {
-  return roomBounds(seats.map((spot, index) => ({ id: String(index), ...spot })));
+  return roomBounds(
+    seats.map((spot, index) => ({ id: String(index), ...spot })),
+  );
 }

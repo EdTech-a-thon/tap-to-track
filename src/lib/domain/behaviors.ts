@@ -7,7 +7,12 @@ import type { Behavior, BehaviorMode } from "./types";
 export const BEHAVIOR_LIMIT = 6;
 
 export const BEHAVIOR_COLORS = [
-  "#3d7ea6", "#2f7d5c", "#cf8a3f", "#8a4a6d", "#4c56a0", "#5a615e",
+  "#3d7ea6",
+  "#2f7d5c",
+  "#cf8a3f",
+  "#8a4a6d",
+  "#4c56a0",
+  "#5a615e",
 ];
 
 /**
@@ -17,7 +22,10 @@ export const BEHAVIOR_COLORS = [
  * if the name, the colour and the mode are fixed, so it is added whole or not at all.
  */
 export const ABSENT_BEHAVIOR: {
-  name: string; color: string; mode: BehaviorMode; away: true;
+  name: string;
+  color: string;
+  mode: BehaviorMode;
+  away: true;
 } = { name: "Absent", color: "#5a615e", mode: "toggle", away: true };
 
 /** The Absent row, if the teacher has one. Only ever one — "away" is what marks it. */
@@ -27,7 +35,10 @@ export function absentBehavior(all: Behavior[]): Behavior | undefined {
 
 /** What a teacher gets before they have configured anything. */
 export const DEFAULT_BEHAVIORS: {
-  name: string; color: string; mode: BehaviorMode; away?: boolean;
+  name: string;
+  color: string;
+  mode: BehaviorMode;
+  away?: boolean;
 }[] = [
   { name: "Participation", color: "#3d7ea6", mode: "tally" },
   { name: "Positive behavior", color: "#2f7d5c", mode: "tally" },
@@ -36,7 +47,10 @@ export const DEFAULT_BEHAVIORS: {
 ];
 
 /** The Behaviors a Class shows on its popup, in the teacher's chosen order. */
-export function behaviorsFor(all: Behavior[], enabledIds: string[]): Behavior[] {
+export function behaviorsFor(
+  all: Behavior[],
+  enabledIds: string[],
+): Behavior[] {
   return all
     .filter((behavior) => enabledIds.includes(behavior.id))
     .sort((a, b) => a.position - b.position);

@@ -1,4 +1,4 @@
-# Tap-to-Track Decisions
+# Tap and Tally Decisions
 
 - The app is a seating chart first. Finding a child means looking at where they sit, not
   reading an alphabetical list.
@@ -31,4 +31,8 @@
 - Each teacher has their own account and can read only their own data.
 - Only classroom display names are stored — a first name and at most three letters of a
   surname. Never full names or student identifiers.
+- The root URL is a public homepage that explains the tool, and the app lives at
+  `/chart`, `/setup` and `/analytics` behind the sign-in. A teacher who has only heard
+  the name should be able to read what it does and what it stores about children before
+  being asked for a password. See `docs/adr/0005-a-public-front-door-at-the-root.md`.
 - SvelteKit provides the app structure; the interface stays small and approachable.

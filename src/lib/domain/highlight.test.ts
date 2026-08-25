@@ -2,15 +2,29 @@ import { expect, test } from "vitest";
 import { seatShade, shadeColor, shadeStep } from "./highlight";
 import type { Behavior, Tap } from "./types";
 
-const behavior = (id: string, over: Partial<Behavior> = {}): Behavior =>
-  ({ id, name: id, color: "#3d7ea6", position: 0, mode: "tally", ...over });
-const tap = (id: string, behaviorId: string, studentId = "maya", at = "2026-01-01T09:00:00"): Tap =>
-  ({ id, studentId, behaviorId, createdAt: at });
+const behavior = (id: string, over: Partial<Behavior> = {}): Behavior => ({
+  id,
+  name: id,
+  color: "#3d7ea6",
+  position: 0,
+  mode: "tally",
+  ...over,
+});
+const tap = (
+  id: string,
+  behaviorId: string,
+  studentId = "maya",
+  at = "2026-01-01T09:00:00",
+): Tap => ({ id, studentId, behaviorId, createdAt: at });
 
 const TODAY = "2026-01-01";
 
 const participation = behavior("participation");
-const absent = behavior("absent", { mode: "toggle", away: true, color: "#5a615e" });
+const absent = behavior("absent", {
+  mode: "toggle",
+  away: true,
+  color: "#5a615e",
+});
 const all = [participation, absent];
 
 test("shading climbs with the count and then stops", () => {
@@ -31,9 +45,20 @@ test("shading uses the Behavior's own colour, at full strength once earned", () 
 });
 
 test("a student called on twice shades stronger than one called on once", () => {
-  const once = seatShade([tap("1", "participation")], TODAY, "maya", participation, all);
+  const once = seatShade(
+    [tap("1", "participation")],
+    TODAY,
+    "maya",
+    participation,
+    all,
+  );
   const twice = seatShade(
-    [tap("1", "participation"), tap("2", "participation")], TODAY, "maya", participation, all);
+    [tap("1", "participation"), tap("2", "participation")],
+    TODAY,
+    "maya",
+    participation,
+    all,
+  );
   expect(once.color).not.toBe(twice.color);
 });
 
@@ -45,10 +70,14 @@ test("an away student is grey whatever is highlighted", () => {
 });
 
 test("with nothing highlighted, a present student's Seat is plain", () => {
-  expect(seatShade([tap("1", "participation")], TODAY, "maya", null, all).color).toBe(undefined);
+  expect(
+    seatShade([tap("1", "participation")], TODAY, "maya", null, all).color,
+  ).toBe(undefined);
 });
 
 test("a new day starts everyone unmarked", () => {
   const yesterday = [tap("1", "participation", "maya", "2025-12-31T09:00:00")];
-  expect(seatShade(yesterday, TODAY, "maya", participation, all).color).toBe(undefined);
+  expect(seatShade(yesterday, TODAY, "maya", participation, all).color).toBe(
+    undefined,
+  );
 });

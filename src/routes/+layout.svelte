@@ -1,42 +1,17 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { page } from "$app/state";
   import { auth } from "$lib/auth.svelte";
-  import SignIn from "$lib/components/SignIn.svelte";
-  import { ui } from "$lib/ui.svelte";
   import "../styles.css";
   let { children } = $props();
 
+  // Restoring here rather than in the app shell, so the homepage can also tell a
+  // signed-in teacher apart from a visitor and offer them their chart instead.
   onMount(() => auth.restore());
-
-  const sections = [
-    { href: "/", label: "Chart" },
-    { href: "/setup", label: "Setup" },
-    { href: "/analytics", label: "Analytics" },
-  ];
 </script>
 
 <svelte:head>
-  <title>Tap-to-Track</title>
+  <title>Tap and Tally</title>
   <meta name="description" content="Simple, touch-first classroom participation tracking" />
 </svelte:head>
 
-{#if !auth.ready}
-  <main class="loading">Opening your classes…</main>
-{:else if !auth.teacher}
-  <SignIn />
-{:else}
-  {#if !ui.teaching}
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="Tap-to-Track home"><span>T</span><strong>Tap-to-Track</strong></a>
-      <nav aria-label="Main sections">
-        {#each sections as section}
-          <a href={section.href} class:active={page.url.pathname === section.href}>{section.label}</a>
-        {/each}
-      </nav>
-      <button class="linkish" onclick={() => auth.signOut()}>Sign out</button>
-    </header>
-  {/if}
-
-  {@render children()}
-{/if}
+{@render children()}

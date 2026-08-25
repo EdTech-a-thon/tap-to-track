@@ -1,6 +1,10 @@
 import { expect, test } from "vitest";
 import {
-  clashingIndexes, findCollisions, parseCsvRoster, parsePastedRoster, toDisplayName,
+  clashingIndexes,
+  findCollisions,
+  parseCsvRoster,
+  parsePastedRoster,
+  toDisplayName,
 } from "./roster";
 
 test("a display name keeps the first name and only the letters of the surname asked for", () => {
@@ -15,7 +19,10 @@ test("no more than three letters of a surname are ever kept", () => {
 
 test("pasted names split on newlines, commas, or a mixture", () => {
   expect(parsePastedRoster("Avery\nJordan, Kai\n\n  Riley  ")).toEqual([
-    "Avery", "Jordan", "Kai", "Riley",
+    "Avery",
+    "Jordan",
+    "Kai",
+    "Riley",
   ]);
 });
 
@@ -25,7 +32,10 @@ test("a CSV uses its name column, whichever position it is in", () => {
 });
 
 test("a CSV with no header falls back to the first column", () => {
-  expect(parseCsvRoster("Avery Smith\nJordan Blake")).toEqual(["Avery S", "Jordan B"]);
+  expect(parseCsvRoster("Avery Smith\nJordan Blake")).toEqual([
+    "Avery S",
+    "Jordan B",
+  ]);
 });
 
 test("a surname-first cell is flipped back to first-name-first", () => {

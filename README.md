@@ -1,6 +1,8 @@
-# Tap-to-Track
+# Tap and Tally
 
-Tap-to-Track is a touch-first classroom tool. A teacher draws their room once, seats
+**[tapandtally.com](https://tapandtally.com)**
+
+Tap and Tally is a touch-first classroom tool. A teacher draws their room once, seats
 their students in it, and then taps a face during a lesson to record what happened.
 Underneath, every tap is kept, so patterns that are impossible to hold in your head
 show up in a table afterwards.
@@ -27,9 +29,16 @@ show up in a table afterwards.
 - **Analytics and export.** Counts per student over the last week, month, or all time,
   filtered by behavior and class, downloadable as a spreadsheet.
 
+## Where things are
+
+`/` is a public homepage explaining the tool — the only server-rendered page, and the
+only one that works signed out. The app sits behind the sign-in at `/chart` (the room),
+`/setup` (classes, rosters and behaviors) and `/analytics` (the table and the export).
+See `docs/adr/0005-a-public-front-door-at-the-root.md`.
+
 ## Privacy
 
-Tap-to-Track stores a first name and at most three letters of a surname — enough to tell
+Tap and Tally stores a first name and at most three letters of a surname — enough to tell
 two Mayas apart, and no more. It never stores full names, student identifiers, photos, or
 anything else that identifies a child outside your classroom. Each teacher has their own
 account, and nobody else — signed in or not — can read their classes or their students'
@@ -40,9 +49,11 @@ records.
 Sign in with the demo account to look around without creating anything:
 
 ```
-demo@tap-to-track.example
+demo@tapandtally.com
 demoteacher
 ```
+
+The homepage shows the same credentials, so there is nothing to memorise before a demo.
 
 ## Development
 

@@ -24,6 +24,9 @@
 </script>
 
 <main class="page signin">
+  <!-- The way back out: the app's front door is a page of its own, so signing in must not
+  be a dead end for someone who arrived here before they were ready. -->
+  <a class="brand signin-brand" href="/"><span>T&amp;T</span><strong>Tap and Tally</strong></a>
   <section class="panel">
     <h1>{mode === "in" ? "Welcome back" : "Create your account"}</h1>
     <p>Your classes and your students' records are yours alone. Nobody else can see them.</p>

@@ -49,7 +49,7 @@
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = `tap-to-track-${range}-${stamp}.csv`;
+    link.download = `tap-and-tally-${range}-${stamp}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }

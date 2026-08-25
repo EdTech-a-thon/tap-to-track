@@ -26,7 +26,9 @@ class Auth {
   }
 
   async signUp(email: string, password: string) {
-    await pb.collection("users").create({ email, password, passwordConfirm: password });
+    await pb
+      .collection("users")
+      .create({ email, password, passwordConfirm: password });
     await this.signIn(email, password);
   }
 
