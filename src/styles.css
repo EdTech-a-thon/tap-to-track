@@ -135,3 +135,4 @@ tr.quiet td { color: #8b9a94; } tr.quiet strong { color: #6c7d76; }
 .count { margin: 1.25rem 0 0; font-size: 1.1rem; } .count + .roster-scroll .roster-list { margin-top: .5rem; }
 .roster-scroll { max-height: 24rem; overflow: auto; } .roster-scroll .roster-list li:last-child { border-bottom: 0; }
 .start { width: min(460px, 100%); }
+.panel .class-picker { display: flex; margin: 0 0 .9rem; }
