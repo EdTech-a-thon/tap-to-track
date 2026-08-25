@@ -57,7 +57,7 @@ class is always in the same place just above the room. -->
       {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
     </select>
   </label>
-  <button class="secondary" disabled={!seated} onclick={emptyDesks}>Empty every desk</button>
+  <button class="secondary" disabled={!seated} onclick={emptyDesks}>Unseat all students</button>
 </div>
 
 <p class="hint">

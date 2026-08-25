@@ -38,6 +38,8 @@ form .primary { width: 100%; }
 .behavior-list input[type="color"] { width: 38px; min-width: 38px; height: 38px; margin: 0; padding: 2px; border-radius: 9px; }
 .behavior-list .mode { margin: 0; } .behavior-list select { max-width: 12rem; padding: 0 .5rem; border: 1px solid var(--line); border-radius: 9px; background: white; }
 .behavior-list button { border: 0; background: transparent; color: #8a4038; font-weight: 700; } .nudge { color: #536b63; min-width: 34px; }
+.behavior-list li.fixed .swatch { width: 38px; min-width: 38px; height: 38px; border-radius: 9px; }
+.fixed-name { flex: 0 0 auto; } .fixed-note { flex: 1; min-width: 0; color: #657770; font-size: .85rem; }
 .check { display: flex; align-items: center; gap: .6rem; margin: 0 !important; font-weight: 600 !important; } .check input { width: auto; min-height: 22px; margin: 0; }
 .swatch { width: 18px; height: 18px; border-radius: 5px; }
 .chart-page { width: min(1600px, 100%); padding-bottom: 1.5rem; }

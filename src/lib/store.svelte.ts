@@ -2,7 +2,7 @@ import { pb } from "$lib/pb";
 import { newId, outbox } from "$lib/outbox.svelte";
 import { auth } from "$lib/auth.svelte";
 import { seatStudent, unseatClass, unseatStudent } from "$lib/domain/assignment";
-import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
+import { ABSENT_BEHAVIOR, absentBehavior, DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
 import { ANCHOR_HEIGHT, ANCHOR_WIDTH } from "$lib/domain/seating";
 import { dayKey, resolveTap, tapsSince, today } from "$lib/domain/taps";
 import type {
@@ -107,10 +107,24 @@ class Store {
     }));
   }
 
-  async addBehavior(name: string, color: string, mode: BehaviorMode) {
+  /** A new button starts on everywhere: a teacher who just added it expects to see it. */
+  async addBehavior(name: string, color: string, mode: BehaviorMode, away = false) {
     const position = this.behaviors.length;
-    const record = await pb.collection("behaviors").create({ name, color, mode, position, owner: owner() });
-    this.behaviors = [...this.behaviors, { id: record.id, name, color, mode, position, away: false }];
+    const record = await pb.collection("behaviors")
+      .create({ name, color, mode, position, away, owner: owner() });
+    this.behaviors = [...this.behaviors, { id: record.id, name, color, mode, position, away }];
+    this.classes = this.classes.map((cls) => ({
+      ...cls, behaviorIds: [...cls.behaviorIds, record.id],
+    }));
+    await Promise.all(this.classes.map((cls) =>
+      pb.collection("classes").update(cls.id, { behaviors: cls.behaviorIds })));
+  }
+
+  /** Adds the Absent row whole, rules and all. There is only ever one — see behaviors.ts. */
+  async addAbsentBehavior() {
+    if (absentBehavior(this.behaviors)) return;
+    const { name, color, mode, away } = ABSENT_BEHAVIOR;
+    await this.addBehavior(name, color, mode, away);
   }
 
   async updateBehavior(id: string, change: Partial<Omit<Behavior, "id">>) {
