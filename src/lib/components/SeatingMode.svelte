@@ -38,6 +38,16 @@
 
 <svelte:window onpointermove={drag} onpointerup={drop} onpointercancel={drop} />
 
+<!-- The class sits on the same row here as it does while teaching, so switching
+class is always in the same place just above the room. -->
+<div class="seating-bar">
+  <label class="class-picker">Class
+    <select bind:value={store.activeClassId}>
+      {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
+    </select>
+  </label>
+</div>
+
 <p class="hint">
   Drag a student onto a desk. Dropping onto a taken desk swaps the two. Dragging someone
   down to the list leaves them on the roster but out of a seat — they can still be tapped.

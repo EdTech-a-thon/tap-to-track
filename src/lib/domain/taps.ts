@@ -24,6 +24,16 @@ export function today(): string {
   return dayKey(new Date());
 }
 
+/**
+ * The Taps the chart is currently showing. Clearing the chart between two lessons moves
+ * this starting line forward instead of deleting anything: the desks read plain again,
+ * while the reports still count everything that happened today. See ADR 0004.
+ */
+export function tapsSince(taps: Tap[], clearedAt: number | null): Tap[] {
+  if (!clearedAt) return taps;
+  return taps.filter((tap) => Date.parse(tap.createdAt) >= clearedAt);
+}
+
 /** Every Tap for one Student on one day. */
 export function tapsFor(taps: Tap[], day: string, studentId: string): Tap[] {
   return taps.filter((tap) => tap.studentId === studentId && dayKey(tap.createdAt) === day);

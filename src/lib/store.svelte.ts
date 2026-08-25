@@ -3,12 +3,28 @@ import { newId, outbox } from "$lib/outbox.svelte";
 import { auth } from "$lib/auth.svelte";
 import { seatStudent, unseatStudent } from "$lib/domain/assignment";
 import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
-import { resolveTap, today } from "$lib/domain/taps";
+import { dayKey, resolveTap, tapsSince, today } from "$lib/domain/taps";
 import type {
   Behavior, BehaviorMode, Class, Seat, Student, Tap,
 } from "$lib/domain/types";
 
 const owner = () => auth.teacher?.id ?? "";
+
+const CLEARED_KEY = "tap-to-track-cleared";
+
+/**
+ * When each Class's chart was last cleared, remembered on this device. Yesterday's
+ * clears are dropped on the way in: the chart already starts clean every morning.
+ */
+function readCleared(): Record<string, number> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CLEARED_KEY) ?? "{}");
+    return Object.fromEntries(Object.entries(saved as Record<string, number>)
+      .filter(([, when]) => dayKey(new Date(when)) === today()));
+  } catch {
+    return {};
+  }
+}
 
 /** Everything the signed-in teacher owns, kept in memory and written straight through. */
 class Store {
@@ -21,6 +37,8 @@ class Store {
   lastTap = $state<{ id: string; studentName: string; behaviorName: string } | null>(null);
   loaded = $state(false);
   activeClassId = $state<string | null>(null);
+  /** Per Class, the moment the teacher last cleared the chart. */
+  clearedAt = $state<Record<string, number>>({});
 
   activeClass = $derived(this.classes.find((cls) => cls.id === this.activeClassId) ?? this.classes[0]);
 
@@ -28,7 +46,23 @@ class Store {
     return this.students.filter((student) => student.classId === classId);
   }
 
+  /** What one Class's chart and popups count: everything since it was last cleared. */
+  chartTaps(classId: string | undefined) {
+    return tapsSince(this.taps, (classId && this.clearedAt[classId]) || null);
+  }
+
+  /**
+   * Starts the Class's chart over — plain desks, counts back to zero, toggles off. The
+   * Taps themselves are kept, so nothing disappears from the reports.
+   */
+  clearChart(classId: string) {
+    this.clearedAt = { ...this.clearedAt, [classId]: Date.now() };
+    localStorage.setItem(CLEARED_KEY, JSON.stringify(this.clearedAt));
+    this.lastTap = null;
+  }
+
   async load() {
+    this.clearedAt = readCleared();
     if (!owner()) return;
     outbox.start();
     const [classes, students, behaviors, seats, taps] = await Promise.all([
@@ -153,7 +187,9 @@ class Store {
    * why nothing was recorded.
    */
   async tap(studentId: string, behavior: Behavior) {
-    const outcome = resolveTap(this.taps, today(), studentId, behavior, this.behaviors);
+    const classId = this.students.find((student) => student.id === studentId)?.classId;
+    const outcome = resolveTap(
+      this.chartTaps(classId), today(), studentId, behavior, this.behaviors);
     if (outcome.action === "refuse") return "away" as const;
 
     if (outcome.action === "remove") {

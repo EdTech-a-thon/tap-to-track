@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { countsFor, dayKey, isAway, isOn, popupGrid, resolveTap } from "./taps";
+import { countsFor, dayKey, isAway, isOn, popupGrid, resolveTap, tapsSince } from "./taps";
 import type { Behavior, Tap } from "./types";
 
 const behavior = (id: string, over: Partial<Behavior> = {}): Behavior =>
@@ -69,4 +69,25 @@ test("a Student who is away can always be brought back", () => {
 test("being away yesterday does not lock today", () => {
   const taps = [tap("t1", "absent", "maya", YESTERDAY)];
   expect(resolveTap(taps, TODAY, "maya", participation, all)).toEqual({ action: "add" });
+});
+
+test("clearing the chart hides earlier taps without deleting them", () => {
+  const taps = [
+    tap("t1", "participation", "maya", "2026-01-01T09:00:00Z"),
+    tap("t2", "participation", "maya", "2026-01-01T11:00:00Z"),
+  ];
+  const cleared = Date.parse("2026-01-01T10:00:00Z");
+
+  expect(tapsSince(taps, null)).toHaveLength(2);
+  expect(tapsSince(taps, cleared).map((item) => item.id)).toEqual(["t2"]);
+  expect(countsFor(tapsSince(taps, cleared), TODAY, "maya")).toEqual({ participation: 1 });
+  expect(taps).toHaveLength(2);
+});
+
+test("clearing the chart brings a student marked away back onto the desks", () => {
+  const taps = [tap("t1", "absent", "maya", "2026-01-01T09:00:00Z")];
+  const cleared = Date.parse("2026-01-01T10:00:00Z");
+
+  expect(isAway(taps, TODAY, "maya", all)).toBe(true);
+  expect(isAway(tapsSince(taps, cleared), TODAY, "maya", all)).toBe(false);
 });

@@ -8,7 +8,7 @@
   let options = $derived(behaviorsFor(store.behaviors, cls?.behaviorIds ?? []));
 </script>
 
-<label class="class-picker highlight">Showing
+<label class="class-picker highlight">Visually Show
   <select bind:value>
     <option value={null}>Nothing — plain desks</option>
     {#each options as behavior (behavior.id)}

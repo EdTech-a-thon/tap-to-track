@@ -11,6 +11,9 @@
   Absence toggles, because a child is absent for a whole lesson rather than three times.
 - A lesson is started and ended deliberately. Taps outside a lesson are refused rather
   than recorded silently, so a stray tap while setting up the room never becomes data.
+- Desk colors can be reset mid-day, so a second lesson with the same class starts on a
+  plain chart. Resetting hides today's colors and counts from that moment on; it deletes
+  nothing, so the reports still hold every tap, and it asks nothing before doing it.
 - Undo deletes the tap. Nothing writes a correction against a tap that was a mistake.
 - Every tap is kept as its own record, which is what makes the analytics and export
   possible. Records live in a database rather than on the device, so a cleared browser

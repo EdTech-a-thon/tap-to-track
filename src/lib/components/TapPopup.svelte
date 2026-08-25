@@ -10,8 +10,10 @@
   let buttons = $derived(behaviorsFor(store.behaviors, cls?.behaviorIds ?? []));
   let grid = $derived(popupGrid(buttons.length));
   let day = today();
-  let counts = $derived(countsFor(store.taps, day, student.id));
-  let away = $derived(isAway(store.taps, day, student.id, store.behaviors));
+  // The popup counts what the chart shows, so clearing the desks zeroes it here too.
+  let taps = $derived(store.chartTaps(student.classId));
+  let counts = $derived(countsFor(taps, day, student.id));
+  let away = $derived(isAway(taps, day, student.id, store.behaviors));
 
   /** One tap is the whole errand, so recording it closes the popup and hands the room back. */
   const record = (behavior: Behavior) => () => {
@@ -38,7 +40,7 @@
   {:else}
     <div class="tap-grid" style:grid-template-columns="repeat({grid.columns}, 1fr)">
       {#each buttons as behavior (behavior.id)}
-        {@const on = isOn(store.taps, day, student.id, behavior.id)}
+        {@const on = isOn(taps, day, student.id, behavior.id)}
         {@const locked = away && !behavior.away}
         <button
           class="tap-button"

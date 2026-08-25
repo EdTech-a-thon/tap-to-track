@@ -2,28 +2,34 @@
   import { onMount } from "svelte";
   import SeatCanvas from "$lib/components/SeatCanvas.svelte";
   import SeatingMode from "$lib/components/SeatingMode.svelte";
-  import OutboxBadge from "$lib/components/OutboxBadge.svelte";
   import TrackingMode from "$lib/components/TrackingMode.svelte";
   import UndoToast from "$lib/components/UndoToast.svelte";
   import { seatDeletionImpact } from "$lib/domain/assignment";
   import { nextSeatSpot } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
-  import { enterTeaching, ui } from "$lib/ui.svelte";
+  import { ui } from "$lib/ui.svelte";
 
-  type Mode = "track" | "seating" | "layout";
+  type Mode = "track" | "configure";
+  /** Configuring the room is mostly seating students; moving desks is a step aside from that. */
+  type ConfigureMode = "seating" | "layout";
   let mode: Mode = $state("track");
+  let configuring: ConfigureMode = $state("seating");
   let snapping = $state(true);
   let selectedSeatId = $state<string | null>(null);
 
   onMount(() => store.load());
 
-  /** Full screen is a teaching view, so it always shows the chart. */
-  async function goFullScreen() {
-    mode = "track";
-    await enterTeaching();
+  let selectedSeat = $derived(store.seats.find((seat) => seat.id === selectedSeatId));
+
+  function toggleConfiguring() {
+    configuring = configuring === "layout" ? "seating" : "layout";
+    selectedSeatId = null;
   }
 
-  let selectedSeat = $derived(store.seats.find((seat) => seat.id === selectedSeatId));
+  function goToLayout() {
+    mode = "configure";
+    configuring = "layout";
+  }
 
   function addSeat() {
     const spot = nextSeatSpot(store.seats);
@@ -45,44 +51,63 @@
 
 <main class="page chart-page">
   {#if !ui.teaching}
-  <section class="chart-bar">
-    <div class="modes" role="group" aria-label="Chart mode">
-      <button class:active={mode === "track"} onclick={() => (mode = "track")}>Teaching</button>
-      <button class:active={mode === "seating"} onclick={() => (mode = "seating")}>Seating</button>
-      <button class:active={mode === "layout"} onclick={() => (mode = "layout")}>Layout</button>
-    </div>
+    {#if mode === "configure" && configuring === "layout"}
+      <!-- Rearranging is a room-wide job, so the tabs, the class and the chart tools all
+      step out of the way until the teacher is done with the furniture. -->
+      <section class="chart-bar layout-bar">
+        <div class="bar-side">
+          <button class="secondary" onclick={addSeat}>Add a desk</button>
+          <label class="check">
+            <input type="checkbox" bind:checked={snapping} />
+            Line desks up
+          </label>
+          <button class="secondary" disabled={!selectedSeat} onclick={deleteSelected}>
+            Delete desk
+          </button>
+        </div>
 
-    {#if store.classes.length}
-      <label class="class-picker">Class
-        <select bind:value={store.activeClassId}>
-          {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
-        </select>
-      </label>
+        <p class="bar-center layout-flag">Rearranging desk layout</p>
+
+        <div class="bar-end">
+          <button class="leave" onclick={toggleConfiguring}>Back to seating students</button>
+        </div>
+      </section>
+    {:else}
+      <section class="chart-bar">
+        <div class="bar-side">
+          {#if mode === "configure"}
+            <button class="secondary mode-switch" onclick={toggleConfiguring}>
+              Rearrange desk layout
+            </button>
+          {/if}
+        </div>
+
+        <div class="bar-center modes" role="group" aria-label="Chart mode">
+          <button class:active={mode === "track"} onclick={() => (mode = "track")}>Teaching</button>
+          <button class:active={mode === "configure"} onclick={() => (mode = "configure")}>
+            Configure Seating
+          </button>
+        </div>
+
+        <div class="bar-end"></div>
+      </section>
     {/if}
-
-    {#if mode === "layout"}
-      <button class="secondary" onclick={addSeat}>Add a desk</button>
-      <label class="check">
-        <input type="checkbox" bind:checked={snapping} />
-        Line desks up
-      </label>
-      <button class="secondary" disabled={!selectedSeat} onclick={deleteSelected}>
-        Delete desk
-      </button>
-    {/if}
-
-    <div class="bar-end">
-      <OutboxBadge />
-      {#if store.activeClass}
-        <button class="primary" onclick={goFullScreen}>Full screen</button>
-      {/if}
-    </div>
-  </section>
   {/if}
 
   {#if !store.loaded}
     <p class="hint">Opening your classroom…</p>
-  {:else if mode === "layout"}
+  {:else if mode === "track"}
+    {#if !store.activeClass}
+      <section class="empty">
+        <span>✦</span>
+        <h2>No classes yet</h2>
+        <p>Make a class and add some students before you start teaching.</p>
+        <a class="primary" href="/setup">Go to Setup</a>
+      </section>
+    {:else}
+      <TrackingMode classId={store.activeClass.id} />
+    {/if}
+  {:else if configuring === "layout"}
     {#if !store.seats.length}
       <section class="empty">
         <span>✦</span>
@@ -102,17 +127,6 @@
         onSeatClick={(seat) => (selectedSeatId = seat.id === selectedSeatId ? null : seat.id)}
       />
     {/if}
-  {:else if mode === "track"}
-    {#if !store.activeClass}
-      <section class="empty">
-        <span>✦</span>
-        <h2>No classes yet</h2>
-        <p>Make a class and add some students before you start teaching.</p>
-        <a class="primary" href="/setup">Go to Setup</a>
-      </section>
-    {:else}
-      <TrackingMode classId={store.activeClass.id} />
-    {/if}
   {:else if !store.activeClass}
     <section class="empty">
       <span>✦</span>
@@ -124,8 +138,8 @@
     <section class="empty">
       <span>✦</span>
       <h2>No desks yet</h2>
-      <p>Draw your room in Layout first, then you can seat students in it.</p>
-      <button class="primary" onclick={() => (mode = "layout")}>Go to Layout</button>
+      <p>Move the desks into place first, then you can seat students in them.</p>
+      <button class="primary" onclick={goToLayout}>Rearrange Desk Layout</button>
     </section>
   {:else}
     <SeatingMode classId={store.activeClass.id} />
