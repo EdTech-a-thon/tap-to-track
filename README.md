@@ -7,9 +7,13 @@ show up in a table afterwards.
 
 ## What it does
 
-- **A seating chart of your actual room.** Drag desks where they belong; they snap to a
-  grid so rows come out straight. The room is drawn once and shared by every class you
-  teach in it — moving a desk never changes who sits where.
+- **A seating chart of your actual room.** Say how many desks you have and pick one of
+  five ready-made rooms — or start from blank. Then drag desks where they belong; they
+  snap to a grid so rows come out straight. The room is drawn once and shared by every
+  class you teach in it — moving a desk never changes who sits where.
+- **Anchors for the things that aren't desks.** Add a box for the door, the board or your
+  own desk, write in it and size it to fit. They hold nobody and record nothing; they are
+  there so the chart faces the same way you do.
 - **Seating separate from the room.** Drag a student onto a desk; drop them on a taken
   one to swap. Each class has its own seating on the same furniture.
 - **Up to six things to track.** Participation, positive behavior, redirect and absent

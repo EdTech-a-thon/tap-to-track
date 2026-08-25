@@ -25,6 +25,16 @@ export function unseatStudent(students: Student[], studentId: string): Student[]
 }
 
 /**
+ * Empties every desk in one Class at once — the start-of-term job of seating everyone
+ * again from scratch. Only this Class's Assignment changes: the Layout stays as it is,
+ * and every other Class that meets in the room keeps its own seating.
+ */
+export function unseatClass(students: Student[], classId: string): Student[] {
+  return students.map((student) =>
+    (student.classId === classId && student.seatId ? { ...student, seatId: null } : student));
+}
+
+/**
  * What deleting a Seat would cost. The Layout is shared, so one deletion can unseat
  * students in several Classes at once — the teacher is told how many before it happens.
  */

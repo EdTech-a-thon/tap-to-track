@@ -5,6 +5,13 @@
 - Drawing the room and seating students are separate jobs in separate modes, so
   rearranging a class never disturbs the furniture. One room layout is shared by every
   class that meets in it.
+- A room can hold anchors as well as desks — a named box for the door, the board, the
+  teacher's own desk — because a chart that doesn't say which way the room faces is read back to front.
+  They are part of the layout, so they are shared by every class in the room, and they are
+  never tappable: nothing is recorded against a door.
+- A teacher with no desks yet is asked how many they have and offered five ready-made
+  rooms, because tapping "add a desk" thirty times is a poor first five minutes. The
+  shapes are only a starting point — every desk still moves.
 - Up to six things can be tracked. The limit is deliberate: a popup you have to read is
   a popup that slows down a lesson.
 - Each thing tracked either counts every tap or toggles on and off for the lesson.

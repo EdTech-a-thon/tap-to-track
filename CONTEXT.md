@@ -17,6 +17,12 @@ _Avoid_: seating chart, chart
 One position in a Layout. May be empty.
 _Avoid_: desk, spot
 
+**Anchor**:
+A labelled box in the Layout that is not a Seat — the door, the board, the teacher's own
+desk. Holds nobody, records nothing, and is there only so the chart faces the same way the
+teacher does. Sized freely, since a board is not desk-shaped.
+_Avoid_: marker, landmark, label, note
+
 **Assignment**:
 Which Student occupies which Seat, for one Class. Changes freely without altering the
 Layout.

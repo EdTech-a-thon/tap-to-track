@@ -1,11 +1,12 @@
 import { pb } from "$lib/pb";
 import { newId, outbox } from "$lib/outbox.svelte";
 import { auth } from "$lib/auth.svelte";
-import { seatStudent, unseatStudent } from "$lib/domain/assignment";
+import { seatStudent, unseatClass, unseatStudent } from "$lib/domain/assignment";
 import { DEFAULT_BEHAVIORS } from "$lib/domain/behaviors";
+import { ANCHOR_HEIGHT, ANCHOR_WIDTH } from "$lib/domain/seating";
 import { dayKey, resolveTap, tapsSince, today } from "$lib/domain/taps";
 import type {
-  Behavior, BehaviorMode, Class, Seat, Student, Tap,
+  Anchor, Behavior, BehaviorMode, Class, Seat, Student, Tap,
 } from "$lib/domain/types";
 
 const owner = () => auth.teacher?.id ?? "";
@@ -32,6 +33,7 @@ class Store {
   students = $state<Student[]>([]);
   behaviors = $state<Behavior[]>([]);
   seats = $state<Seat[]>([]);
+  anchors = $state<Anchor[]>([]);
   taps = $state<Tap[]>([]);
   /** The Tap most recently recorded, so it can be undone from the toast. */
   lastTap = $state<{ id: string; studentName: string; behaviorName: string } | null>(null);
@@ -65,11 +67,12 @@ class Store {
     this.clearedAt = readCleared();
     if (!owner()) return;
     outbox.start();
-    const [classes, students, behaviors, seats, taps] = await Promise.all([
+    const [classes, students, behaviors, seats, anchors, taps] = await Promise.all([
       pb.collection("classes").getFullList({ sort: "name" }),
       pb.collection("students").getFullList({ sort: "name" }),
       pb.collection("behaviors").getFullList({ sort: "position" }),
       pb.collection("seats").getFullList(),
+      pb.collection("anchors").getFullList(),
       pb.collection("taps").getFullList({ sort: "at" }),
     ]);
     this.classes = classes.map((r) => ({ id: r.id, name: r.name, behaviorIds: r.behaviors ?? [] }));
@@ -81,6 +84,11 @@ class Store {
       position: r.position ?? 0, away: r.away ?? false,
     }));
     this.seats = seats.map((r) => ({ id: r.id, x: r.x ?? 0, y: r.y ?? 0 }));
+    this.anchors = anchors.map((r) => ({
+      id: r.id, x: r.x ?? 0, y: r.y ?? 0,
+      width: r.width || ANCHOR_WIDTH, height: r.height || ANCHOR_HEIGHT,
+      label: r.label ?? "",
+    }));
     this.taps = taps.map((r) => ({
       id: r.id, studentId: r.student, behaviorId: r.behavior, createdAt: r.at,
     }));
@@ -167,6 +175,18 @@ class Store {
     this.seats = [...this.seats, { id: record.id, x, y }];
   }
 
+  /**
+   * Builds a whole room at once, which is how a teacher who has just said "thirty desks"
+   * gets thirty desks. Only ever used on an empty Layout — see the quick setup.
+   */
+  async addSeats(spots: { x: number; y: number }[]) {
+    const created = await Promise.all(spots.map((spot) =>
+      pb.collection("seats").create({ x: spot.x, y: spot.y, owner: owner() })));
+    this.seats = [...this.seats, ...created.map((record, index) => ({
+      id: record.id, x: spots[index].x, y: spots[index].y,
+    }))];
+  }
+
   async moveSeat(id: string, x: number, y: number) {
     this.seats = this.seats.map((seat) => (seat.id === id ? { ...seat, x, y } : seat));
     await pb.collection("seats").update(id, { x, y });
@@ -180,6 +200,25 @@ class Store {
       student.seatId === id ? { ...student, seatId: null } : student);
     await Promise.all(occupants.map((student) =>
       pb.collection("students").update(student.id, { seat: "" })));
+  }
+
+  /** A landmark, not a desk: nobody sits in it, so adding and removing one is unremarkable. */
+  async addAnchor(label: string, x: number, y: number) {
+    const anchor = { label, x, y, width: ANCHOR_WIDTH, height: ANCHOR_HEIGHT };
+    const record = await pb.collection("anchors").create({ ...anchor, owner: owner() });
+    this.anchors = [...this.anchors, { id: record.id, ...anchor }];
+    return record.id;
+  }
+
+  async updateAnchor(id: string, change: Partial<Omit<Anchor, "id">>) {
+    this.anchors = this.anchors.map((anchor) =>
+      (anchor.id === id ? { ...anchor, ...change } : anchor));
+    await pb.collection("anchors").update(id, change);
+  }
+
+  async deleteAnchor(id: string) {
+    await pb.collection("anchors").delete(id);
+    this.anchors = this.anchors.filter((anchor) => anchor.id !== id);
   }
 
   /**
@@ -237,6 +276,14 @@ class Store {
     const before = this.students;
     const after = seatStudent(before, studentId, seatId);
     if (after === before) return;
+    this.students = after;
+    await this.persistSeats(before, after);
+  }
+
+  /** Takes a whole Class out of its desks, leaving the Layout and other Classes alone. */
+  async unseatClass(classId: string) {
+    const before = this.students;
+    const after = unseatClass(before, classId);
     this.students = after;
     await this.persistSeats(before, after);
   }

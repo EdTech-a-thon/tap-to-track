@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { seatDeletionImpact, seatStudent, unseatStudent, unseatedIn } from "./assignment";
+import { seatDeletionImpact, seatStudent, unseatClass, unseatStudent, unseatedIn } from "./assignment";
 import type { Student } from "./types";
 
 const student = (id: string, classId: string, seatId: string | null): Student =>
@@ -53,4 +53,19 @@ test("deleting an empty Seat disturbs nobody", () => {
 test("the unseated list is per Class", () => {
   const students = [student("maya", "p2", null), student("sam", "p6", null)];
   expect(unseatedIn(students, "p2").map((s) => s.id)).toEqual(["maya"]);
+});
+
+test("emptying every desk clears one Class and leaves the others sitting", () => {
+  const students = [
+    student("maya", "p2", "s1"), student("sam", "p2", "s2"), student("ola", "p2", null),
+    student("ben", "p6", "s1"),
+  ];
+  const after = unseatClass(students, "p2");
+  expect(unseatedIn(after, "p2").map((s) => s.id)).toEqual(["maya", "sam", "ola"]);
+  expect(after.find((s) => s.id === "ben")?.seatId).toBe("s1");
+});
+
+test("emptying the desks keeps everyone on the roster", () => {
+  const students = [student("maya", "p2", "s1"), student("sam", "p2", "s2")];
+  expect(unseatClass(students, "p2").map((s) => s.id)).toEqual(["maya", "sam"]);
 });
