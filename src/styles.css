@@ -1361,8 +1361,9 @@ the room behind it are recognisably the same place. */
   padding: 2rem 0 3.5rem;
 }
 .home-hero h1 {
-  max-width: 14ch;
-  font-size: clamp(2.5rem, 5.5vw, 4rem);
+  max-width: 18ch;
+  font-size: clamp(2rem, 4.2vw, 3.1rem);
+  line-height: 1.1;
 }
 .home-hero .row {
   margin: 1.75rem 0 0.9rem;
@@ -1416,34 +1417,6 @@ the room behind it are recognisably the same place. */
   stroke: #eca84b;
   stroke-width: 2.5;
 }
-.home-band {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 4rem;
-  padding: 1.25rem;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: #fffdf7c9;
-  text-align: center;
-}
-.home-band strong {
-  display: block;
-  font:
-    600 2.6rem "Newsreader",
-    serif;
-  color: var(--green);
-  line-height: 1;
-}
-.home-band span {
-  display: block;
-  margin-top: 0.3rem;
-  color: #60746d;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
 .home-section {
   margin-bottom: 4rem;
   scroll-margin-top: 6rem;
@@ -1483,33 +1456,16 @@ the room behind it are recognisably the same place. */
     600 1.3rem "Newsreader",
     serif;
 }
-.home-steps h3,
-.home-card h3 {
+.home-steps h3 {
   margin: 0 0 0.35rem;
   font-family: "Newsreader", serif;
   font-size: 1.3rem;
   font-weight: 600;
 }
-.home-steps p,
-.home-card p {
+.home-steps p {
   margin: 0;
   color: #5d716a;
   line-height: 1.55;
-}
-/* Two columns rather than auto-fit, so a fourth card starts a full row instead of being
-left stranded on its own at the end of three. */
-.home-cards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin-top: 1.75rem;
-}
-.home-card {
-  padding: 1.25rem;
-  border: 1px solid var(--line);
-  border-radius: 17px;
-  background: var(--paper);
-  box-shadow: 0 8px 25px #24443b0a;
 }
 .privacy {
   max-width: 46rem;
@@ -1525,52 +1481,6 @@ left stranded on its own at the end of three. */
   margin: 0;
   color: #4f635c;
   line-height: 1.6;
-}
-.home-cta {
-  padding: 2.5rem 1.5rem;
-  border-radius: 22px;
-  background: var(--green);
-  color: #fffdf7;
-  text-align: center;
-}
-.home-cta h2 {
-  color: #fffdf7;
-  font-size: 2.2rem;
-}
-.home-cta p {
-  color: #dbe7df;
-}
-.demo-credentials {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin: 1.5rem 0;
-}
-.demo-credentials span {
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.6rem 1rem;
-  border: 1px solid #fffdf733;
-  border-radius: 12px;
-  background: #fffdf714;
-}
-.demo-credentials small {
-  color: #a9c2b4;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-}
-.demo-credentials code {
-  font-size: 1rem;
-}
-.home-cta .primary {
-  border-color: #fffdf7;
-  background: #fffdf7;
-  color: var(--green);
-  padding: 0.85rem 1.4rem;
-  font-size: 1.05rem;
 }
 .home-footer {
   padding: 2.5rem 1.25rem 3rem;
@@ -1589,28 +1499,13 @@ left stranded on its own at the end of three. */
     padding-bottom: 2.5rem;
   }
   .home-hero h1 {
-    max-width: none;
+    max-width: 22ch;
   }
-  .home-steps,
-  .home-cards {
+  .home-steps {
     grid-template-columns: 1fr;
-  }
-  .home-band strong {
-    font-size: 2rem;
-  }
-}
-/* The in-page links are a convenience, not the way out: on a phone the header keeps the
-brand and the way in, and the page itself is short enough to scroll. */
-@media (max-width: 720px) {
-  .home-nav {
-    display: none;
   }
 }
 @media (max-width: 560px) {
-  .home-band {
-    grid-template-columns: 1fr;
-    text-align: left;
-  }
   .home-hero .row > * {
     flex: 1;
     text-align: center;
