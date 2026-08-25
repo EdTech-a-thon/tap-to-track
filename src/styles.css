@@ -96,6 +96,10 @@ h2 {
   font: 600 1.05rem "Newsreader";
   letter-spacing: -0.02em;
 }
+/* The homepage's only top-bar action sits at the far right, away from the wordmark. */
+.topbar-cta {
+  margin-left: auto;
+}
 .class-picker {
   display: flex;
   align-items: center;

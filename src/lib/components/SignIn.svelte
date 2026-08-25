@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { auth } from "$lib/auth.svelte";
 
-  let mode: "in" | "up" = $state("in");
+  // The homepage's "Get started" link asks for the sign-up form; everything else starts at sign-in.
+  let mode: "in" | "up" = $state(page.url.searchParams.has("signup") ? "up" : "in");
   let email = $state("");
   let password = $state("");
   let error = $state("");

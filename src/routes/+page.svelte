@@ -90,7 +90,7 @@
   <a class="brand" href="/" aria-label="Tap and Tally home"
     ><span>T&amp;T</span><strong>Tap and Tally</strong></a
   >
-  <a class="primary" href="/chart">{auth.teacher ? "Open your chart" : "Sign in"}</a>
+  <a class="primary topbar-cta" href="/chart">{auth.teacher ? "Open your chart" : "Sign in"}</a>
 </header>
 
 <main class="page home">
@@ -101,7 +101,7 @@
         Seamlessly record student participation, redirects, or any other student behavior while you teach. 
       </p>
       <div class="row">
-        <a class="primary" href="/chart">
+        <a class="primary" href={auth.teacher ? "/chart" : "/chart?signup"}>
           {auth.teacher ? "Open your chart" : "Get started — it's free"}
         </a>
       </div>
