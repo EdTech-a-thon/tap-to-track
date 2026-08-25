@@ -52,22 +52,26 @@
 
 <div class="tracking" class:teaching={ui.teaching}>
   <div class="tracking-bar">
-    <label class="class-picker">Class
-      <select bind:value={store.activeClassId}>
-        {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
-      </select>
-    </label>
-    <!-- Choosing what the colors show and clearing them are the same errand, so they
-    sit in one group. Resetting asks nothing first: only the colors go, and every tap
-    stays in the reports. -->
-    <div class="display-group">
-      <HighlightPicker {classId} bind:value={
-        () => highlightId,
-        (next) => { highlightId = next; remember(next); }
-      } />
-      <button class="secondary" onclick={() => store.clearChart(classId)}>
-        Reset desk colors
-      </button>
+    <div class="bar-side"></div>
+
+    <div class="bar-center">
+      <label class="class-picker">Class
+        <select bind:value={store.activeClassId}>
+          {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
+        </select>
+      </label>
+      <!-- Choosing what the colors show and clearing them are the same errand, so they
+      sit in one group. Resetting asks nothing first: only the colors go, and every tap
+      stays in the reports. -->
+      <div class="display-group">
+        <HighlightPicker {classId} bind:value={
+          () => highlightId,
+          (next) => { highlightId = next; remember(next); }
+        } />
+        <button class="secondary" onclick={() => store.clearChart(classId)}>
+          Reset desk colors
+        </button>
+      </div>
     </div>
 
     <div class="bar-end">

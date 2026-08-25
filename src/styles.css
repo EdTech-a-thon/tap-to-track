@@ -21,7 +21,7 @@ nav { display: flex; gap: .25rem; margin-left: auto; } nav a { display: grid; pl
 textarea, input { width: 100%; margin-top: .45rem; padding: .75rem; border: 1px solid #bbb5a8; border-radius: 10px; background: white; } textarea { resize: vertical; }
 .roster-list { margin: 1.5rem 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); } .roster-list li { display: flex; align-items: center; gap: .7rem; min-height: 58px; border-bottom: 1px solid var(--line); } .roster-list li strong { margin-right: auto; } .roster-list li button { border: 0; background: transparent; color: #8a4038; font-weight: 700; }
 .toast { position: fixed; right: 1rem; bottom: 1rem; display: flex; align-items: center; gap: .8rem; max-width: calc(100vw - 2rem); padding: .75rem 1rem; border-radius: 12px; color: white; background: #173c33; box-shadow: 0 8px 28px #0003; } .toast button { min-height: 30px; border: 0; color: white; background: transparent; font-size: 1.3rem; }
-@media (max-width: 900px) { .chart-bar { grid-template-columns: 1fr; } .bar-center { justify-content: flex-start; } .chart-bar .bar-end { justify-content: flex-start; } }
+@media (max-width: 900px) { .chart-bar { grid-template-columns: 1fr; } .chart-bar .bar-center { justify-content: flex-start; } .chart-bar .bar-end { justify-content: flex-start; } }
 @media (max-width: 720px) { .topbar { flex-wrap: wrap; gap: .6rem 1rem; } .topbar .class-picker { order: 3; width: 100%; } .topbar .class-picker select { flex: 1; } nav { margin-left: auto; } .page { padding-top: 1.25rem; } .hero { align-items: start; } .summary { gap: .4rem; } .summary div { padding: .7rem; } .summary strong { font-size: 1.55rem; } .setup-grid { grid-template-columns: 1fr; } }
 .signin { width: min(430px, 100%); padding-top: 12vh; } .signin .panel { padding: 2rem; } .signin h1 { font-size: 2.2rem; } .signin p { color: #657770; }
 .linkish { border: 0; background: transparent; color: var(--green); font-weight: 700; text-decoration: underline; }
@@ -83,7 +83,15 @@ a.primary { display: inline-block; text-decoration: none; }
 .tracking { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 1rem; height: calc(100dvh - 12rem); min-height: 420px; }
 .toast button { text-decoration: underline; font-weight: 700; }
 .check.away { font-size: .78rem !important; text-transform: uppercase; letter-spacing: .05em; color: #657770; }
-.tracking-bar, .seating-bar { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; } .seating-bar { margin-bottom: .75rem; } .highlight { margin-left: 0; }
+/* Both rows are held to the height of the tallest control they can carry, and to the
+same gap below, so the picker keeps its line as you switch modes. Seating has the row
+to itself, so the picker sits centred there rather than stranded at the left edge. */
+.tracking-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .75rem; min-height: 56px; }
+.seating-bar { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; min-height: 56px; }
+.seating-bar { justify-content: center; margin-bottom: 1rem; } .highlight { margin-left: 0; }
+/* The picker pushes itself right by default, which beats any alignment these rows ask
+for, so both rows cancel it and place the picker themselves. */
+.tracking-bar .class-picker, .seating-bar > .class-picker { margin-left: 0; }
 .seat.strong, .chip.strong { color: #fffdf7; border-color: transparent; }
 /* Teaching mode is the same bright room as everywhere else, under one green bar. */
 .tracking.teaching { position: fixed; inset: 0; z-index: 25; height: auto; gap: .75rem; padding: .75rem; background: #f3efe5; }
@@ -92,10 +100,17 @@ a.primary { display: inline-block; text-decoration: none; }
 .tracking.teaching .display-group { border-color: #fffdf755; background: #fffdf71f; }
 .tracking.teaching .tracking-bar select, .tracking.teaching .tracking-bar .secondary { color: #173c33; }
 .tracking.teaching .canvas.snapping { background-image: none; }
-/* On a tablet the row wraps on its own; on a phone each control takes a full line so
-the selects never squeeze the class name down to nothing. */
+/* A three-column grid cannot wrap, so on a tablet the row becomes a wrapping flex that
+still centres its controls; on a phone each one takes a full line so the selects never
+squeeze the class name down to nothing. */
+@media (max-width: 980px) {
+  .tracking-bar { display: flex; flex-wrap: wrap; justify-content: center; }
+  .tracking-bar .bar-side { display: none; }
+  .tracking-bar .bar-end { margin-left: auto; }
+}
 @media (max-width: 720px) {
-  .tracking-bar > .class-picker, .seating-bar > .class-picker, .tracking-bar .display-group { width: 100%; }
+  .tracking-bar .bar-center { width: 100%; flex-direction: column; align-items: stretch; }
+  .seating-bar > .class-picker, .tracking-bar .display-group { width: 100%; }
   .tracking-bar .display-group .highlight { flex: 1; min-width: 0; }
   .tracking-bar select, .seating-bar select { flex: 1; min-width: 0; }
   .tracking-bar .bar-end { width: 100%; margin-left: 0; }
