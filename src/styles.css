@@ -1376,7 +1376,13 @@ the room behind it are recognisably the same place. */
 .home-hero .hint {
   margin: 0;
 }
+/* The hero picture is one desk short of being the real thing, so it is laid out like
+the chart: an SVG room with an HTML button sitting on the live desk. */
+.plan-frame {
+  position: relative;
+}
 .home-plan {
+  display: block;
   width: 100%;
   height: auto;
   border: 1px solid var(--line);
@@ -1389,15 +1395,25 @@ the room behind it are recognisably the same place. */
   stroke: #cfd6cb;
   stroke-width: 1.5;
 }
-.plan-seat[data-shade="1"] {
+.plan-initials {
+  fill: #3f5148;
+  font:
+    700 11px "DM Sans",
+    sans-serif;
+  letter-spacing: 0.04em;
+}
+.plan-desk[data-shade="1"] .plan-seat {
   fill: #d3e3d6;
 }
-.plan-seat[data-shade="2"] {
+.plan-desk[data-shade="2"] .plan-seat {
   fill: #97c1a8;
 }
-.plan-seat[data-shade="3"] {
+.plan-desk[data-shade="3"] .plan-seat {
   fill: var(--green);
   stroke: var(--green);
+}
+.plan-desk[data-shade="3"] .plan-initials {
+  fill: #fffdf7;
 }
 .plan-anchor {
   fill: #ece7db;
@@ -1412,10 +1428,100 @@ the room behind it are recognisably the same place. */
     sans-serif;
   letter-spacing: 0.12em;
 }
+/* Sized as a share of the picture so it stays on its desk as the picture scales. */
 .plan-tap {
-  fill: #eca84b44;
-  stroke: #eca84b;
-  stroke-width: 2.5;
+  position: absolute;
+  width: 11%;
+  aspect-ratio: 1;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 2.5px solid #eca84b;
+  border-radius: 50%;
+  background: #eca84b44;
+  cursor: pointer;
+  animation: plan-tap-flash 2.4s ease-in-out infinite;
+}
+.plan-tap:hover,
+.plan-tap:focus-visible,
+.plan-tap.open {
+  background: #eca84b66;
+  animation: none;
+}
+@keyframes plan-tap-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 #eca84b55;
+  }
+  50% {
+    box-shadow: 0 0 0 7px #eca84b00;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plan-tap {
+    animation: none;
+  }
+}
+.plan-popup {
+  position: absolute;
+  z-index: 2;
+  left: var(--x);
+  top: var(--y);
+  width: max-content;
+  transform: translate(-50%, calc(-100% - 1.6rem));
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--paper);
+  box-shadow: 0 16px 40px #24443b2e;
+  text-align: center;
+}
+.plan-popup > strong {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-family: "Newsreader", serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.plan-popup-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+.plan-popup-buttons button {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 6.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--tap-color);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tap-color) 10%, transparent);
+  color: var(--tap-color);
+  cursor: pointer;
+}
+.plan-popup-buttons button:hover {
+  background: color-mix(in srgb, var(--tap-color) 20%, transparent);
+}
+.plan-popup-buttons strong {
+  font:
+    600 1.4rem "Newsreader",
+    serif;
+  line-height: 1;
+}
+.plan-popup-buttons span {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+/* On a narrow picture the popup is nearly as wide as the room, so it stops tracking the
+desk and simply centres itself. */
+@media (max-width: 560px) {
+  .plan-popup {
+    left: 50%;
+  }
+}
+.plan-caption {
+  margin: 0.75rem 0 0;
+  color: #60746d;
+  font-size: 0.9rem;
+  text-align: center;
 }
 .home-section {
   margin-bottom: 4rem;

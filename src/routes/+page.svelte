@@ -5,6 +5,50 @@
    * The public front door. Everything behind /chart needs an account, so this page has
    * one job: say what the tool does in a sentence, and get out of the way.
    */
+
+  /**
+   * The picture in the hero is the product in miniature: one desk is live, so a visitor
+   * can record something before they have an account. Nothing here is saved anywhere.
+   */
+  const INITIALS = [
+    "AK", "TB", "RJ", "SP", "LM",
+    "DO", "JW", "CN", "MA", "HF",
+    "PR", "EG", "NB", "KT", "IV",
+    "FS", "GD", "ZL", "OQ", "YC",
+  ];
+  /** The desk a visitor can tap — third along, second row back. */
+  const LIVE = { name: "Maya A.", x: 22 + 3 * 58, y: 54 + 1 * 42 };
+
+  const seats = INITIALS.map((initials, index) => {
+    const row = Math.floor(index / 5);
+    const column = index % 5;
+    const marks = (row * 5 + column * 3) % 7;
+    return {
+      initials,
+      x: 22 + column * 58,
+      y: 54 + row * 42,
+      shade: marks > 4 ? 3 : marks > 2 ? 2 : marks > 1 ? 1 : 0,
+      live: row === 1 && column === 3,
+    };
+  });
+
+  const demoBehaviors = [
+    { id: "participation", name: "Participation", color: "#3d7ea6" },
+    { id: "redirect", name: "Redirect", color: "#cf8a3f" },
+  ];
+
+  let open = $state(false);
+  let counts = $state<Record<string, number>>({ participation: 0, redirect: 0 });
+  let total = $derived(counts.participation + counts.redirect);
+  /** Same idea as the real chart: more taps today, darker desk. */
+  let liveShade = $derived(Math.min(3, total));
+
+  /** One tap is the whole errand, so recording it hands the room back — as in the app. */
+  function record(id: string) {
+    counts[id] += 1;
+    open = false;
+  }
+
   const steps = [
     {
       title: "Draw your room",
@@ -24,6 +68,8 @@
     },
   ];
 </script>
+
+<svelte:window onkeydown={(event) => event.key === "Escape" && (open = false)} />
 
 <svelte:head>
   <title>Tap and Tally — classroom tracking that takes two taps</title>
@@ -64,23 +110,68 @@
       </p>
     </div>
 
-    <!-- The product in one picture: desks in rows, shaded by how often a child has been
-    tapped today, with the board anchoring which way the room faces. -->
-    <svg class="home-plan" viewBox="0 0 320 220" role="img"
-      aria-label="A seating chart: five rows of desks facing a board, some shaded to show how often each student has been tapped today.">
-      <rect class="plan-anchor" x="96" y="8" width="128" height="22" rx="5" />
-      <text class="plan-anchor-text" x="160" y="23" text-anchor="middle">BOARD</text>
-      {#each [0, 1, 2, 3] as row}
-        {#each [0, 1, 2, 3, 4] as column}
-          {@const shade = (row * 5 + column * 3) % 7}
-          <rect class="plan-seat" data-shade={shade > 4 ? "3" : shade > 2 ? "2" : shade > 1 ? "1" : "0"}
-            x={22 + column * 58} y={54 + row * 42} width="46" height="30" rx="7" />
-        {/each}
-      {/each}
-      <rect class="plan-anchor" x="12" y="188" width="54" height="22" rx="5" />
-      <text class="plan-anchor-text" x="39" y="203" text-anchor="middle">DOOR</text>
-      <circle class="plan-tap" cx="219" cy="111" r="17" />
-    </svg>
+    <!-- The product in one picture, and a working one: desks shaded by how often a
+    child has been tapped today, with one desk live so a visitor can try the tap
+    before making an account. -->
+    <div class="home-demo">
+      <div class="plan-frame">
+        <svg class="home-plan" viewBox="0 0 320 220" role="img"
+          aria-label="A seating chart: four rows of desks facing the board, labelled with each student's initials and shaded by how often they have been tapped today.">
+          <rect class="plan-anchor" x="96" y="8" width="128" height="22" rx="5" />
+          <text class="plan-anchor-text" x="160" y="23" text-anchor="middle">BOARD</text>
+          {#each seats as seat (seat.initials)}
+            {@const shade = seat.live ? liveShade : seat.shade}
+            <g class="plan-desk" data-shade={shade}>
+              <rect class="plan-seat" x={seat.x} y={seat.y} width="46" height="30" rx="7" />
+              <text class="plan-initials" x={seat.x + 23} y={seat.y + 19} text-anchor="middle">
+                {seat.initials}
+              </text>
+            </g>
+          {/each}
+        </svg>
+
+        <!-- Sits over the live desk, in the picture's own proportions, so it stays on the
+        desk at every width. -->
+        <button
+          class="plan-tap"
+          class:open
+          style:left="{((LIVE.x + 23) / 320) * 100}%"
+          style:top="{((LIVE.y + 15) / 220) * 100}%"
+          aria-expanded={open}
+          aria-label="Record something for {LIVE.name}"
+          onclick={() => (open = !open)}
+        ></button>
+
+        {#if open}
+          <div
+            class="plan-popup"
+            role="dialog"
+            aria-label="Record for {LIVE.name}"
+            style:--x="{((LIVE.x + 23) / 320) * 100}%"
+            style:--y="{((LIVE.y + 15) / 220) * 100}%"
+          >
+            <strong>{LIVE.name}</strong>
+            <div class="plan-popup-buttons">
+              {#each demoBehaviors as behavior}
+                <button style:--tap-color={behavior.color} onclick={() => record(behavior.id)}>
+                  <strong>{counts[behavior.id]}</strong>
+                  <span>{behavior.name}</span>
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <p class="plan-caption">
+        {#if total}
+          That's {total} {total === 1 ? "tap" : "taps"} on {LIVE.name} today — the desk
+          darkens as they add up.
+        {:else}
+          Try it: tap the highlighted desk.
+        {/if}
+      </p>
+    </div>
   </section>
 
   <section class="home-section">
