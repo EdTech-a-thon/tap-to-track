@@ -11,6 +11,7 @@ coverage/
 *.db-wal
 *.tsbuildinfo
 .svelte-kit/
+.vercel/
 *.local
 
 # dotenv environment variable files

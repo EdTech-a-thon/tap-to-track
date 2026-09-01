@@ -1,5 +1,7 @@
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
+  import SiteHeader from "$lib/components/SiteHeader.svelte";
+  import Footer from "$lib/components/Footer.svelte";
 
   /**
    * The public front door. Everything behind /chart needs an account, so this page has
@@ -86,12 +88,7 @@
   />
 </svelte:head>
 
-<header class="topbar">
-  <a class="brand" href="/" aria-label="Tap and Tally home"
-    ><span>T&amp;T</span><strong>Tap and Tally</strong></a
-  >
-  <a class="primary topbar-cta" href="/chart">{auth.teacher ? "Open your chart" : "Sign in"}</a>
-</header>
+<SiteHeader />
 
 <main class="page home">
   <section class="home-hero">
@@ -195,10 +192,8 @@
       A first name and a last initial. No full names. Each teacher has their
       own account, and nobody else can read your classes or your students' records.
     </p>
+    <p><a class="doc-link" href="/privacy">Read the full privacy page</a></p>
   </section>
 </main>
 
-<footer class="home-footer">
-  <p><strong>Tap and Tally</strong> · tapandtally.com</p>
-  <p>A first name, a last initial, and whatever you tapped. Nothing else.</p>
-</footer>
+<Footer />
