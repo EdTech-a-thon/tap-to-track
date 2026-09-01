@@ -1,5 +1,29 @@
 import type { Student } from "./types";
 
+/** Gives this Class a fresh random chart, leaving other Classes untouched. */
+export function randomlySeatClass(
+  students: Student[],
+  classId: string,
+  seatIds: string[],
+  random: () => number = Math.random,
+): Student[] {
+  const shuffledSeats = [...seatIds];
+  for (let index = shuffledSeats.length - 1; index > 0; index--) {
+    const swapWith = Math.floor(random() * (index + 1));
+    [shuffledSeats[index], shuffledSeats[swapWith]] = [
+      shuffledSeats[swapWith],
+      shuffledSeats[index],
+    ];
+  }
+
+  let nextSeat = 0;
+  return students.map((student) =>
+    student.classId === classId
+      ? { ...student, seatId: shuffledSeats[nextSeat++] ?? null }
+      : student,
+  );
+}
+
 /**
  * Seats a Student. If the Seat is taken, the two swap — separating two children who
  * cannot sit together is one action, not three. The displaced Student inherits whatever

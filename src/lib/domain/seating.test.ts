@@ -3,6 +3,7 @@ import {
   ANCHOR_MIN,
   GRID,
   SEAT_SIZE,
+  canvasBounds,
   fitScale,
   layoutExtent,
   nextAnchorSpot,
@@ -34,9 +35,17 @@ test("releasing snapping keeps the position where it was dropped", () => {
   expect(snap(37.4, false)).toBe(37);
 });
 
-test("a Seat dragged above or left of the room is kept inside it", () => {
-  expect(placeSeat(-80, -10, true)).toEqual({ x: 0, y: 0 });
-  expect(placeSeat(-80, -10, false)).toEqual({ x: 0, y: 0 });
+test("a Seat can extend the room upward or leftward", () => {
+  expect(placeSeat(-80, -10, true)).toEqual({ x: -80, y: 0 });
+  expect(placeSeat(-83, -11, false)).toEqual({ x: -83, y: -11 });
+});
+
+test("the editable floor includes room on every side of the furniture", () => {
+  const floor = canvasBounds([seat("a", -200, -100), seat("b", 300, 200)]);
+  expect(floor.x).toBeLessThan(-200);
+  expect(floor.y).toBeLessThan(-100);
+  expect(floor.x + floor.width).toBeGreaterThan(300 + SEAT_SIZE);
+  expect(floor.y + floor.height).toBeGreaterThan(200 + SEAT_SIZE);
 });
 
 test("a Seat dropped with snapping on lands on the grid", () => {
@@ -68,6 +77,15 @@ test("the room's own box ignores the empty floor around it", () => {
     y: 60,
     width: 200 + SEAT_SIZE,
     height: SEAT_SIZE,
+  });
+});
+
+test("the room can include a small border around its furniture", () => {
+  expect(roomBounds([seat("a", 100, 60)], [], GRID)).toEqual({
+    x: 80,
+    y: 40,
+    width: SEAT_SIZE + GRID * 2,
+    height: SEAT_SIZE + GRID * 2,
   });
 });
 

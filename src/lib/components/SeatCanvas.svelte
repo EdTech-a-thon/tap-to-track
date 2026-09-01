@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    SEAT_SIZE, fitScale, layoutExtent, placeSeat, roomBounds, sizeAnchor,
+    GRID, SEAT_SIZE, canvasBounds, fitScale, placeSeat, roomBounds, sizeAnchor,
   } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
   import type { Anchor, Seat } from "$lib/domain/types";
@@ -10,12 +10,14 @@
     | { kind: "seat" | "anchor"; id: string; offsetX: number; offsetY: number }
     | { kind: "size"; id: string };
 
-  let { snapping = true, draggable = false, fill = false, selected = null,
+  let { snapping = true, draggable = false, fill = false, compact = false, selected = null,
     seatLabel, onSeatClick, onAnchorClick }: {
     snapping?: boolean;
     draggable?: boolean;
     /** Grow the desks to fill the space the canvas is given, keeping their shape and spacing. */
     fill?: boolean;
+    /** Keep the read-only chart close to its furniture instead of showing the editing floor. */
+    compact?: boolean;
     /** The one piece of furniture being worked on, whichever kind it is. */
     selected?: { kind: "seat" | "anchor"; id: string } | null;
     seatLabel?: (seat: Seat) => { text: string; color?: string; faded?: boolean; strong?: boolean };
@@ -24,26 +26,33 @@
   } = $props();
 
   let dragging = $state<Grab | null>(null);
+  let dragFloor = $state<ReturnType<typeof canvasBounds> | null>(null);
   let room = $state<HTMLDivElement>();
   let box = $state({ width: 0, height: 0 });
 
-  let extent = $derived(layoutExtent(store.seats, store.anchors));
   let bounds = $derived(roomBounds(store.seats, store.anchors));
+  let floor = $derived(
+    dragFloor ??
+      (compact
+        ? roomBounds(store.seats, store.anchors, GRID)
+        : canvasBounds(store.seats, store.anchors)),
+  );
   // Filling shrink-wraps the room around the furniture first, so the empty margins don't take space.
-  let size = $derived(fill ? bounds : extent);
+  let size = $derived(fill ? bounds : floor);
   let scale = $derived(fill ? fitScale(bounds, box) : 1);
 
   /** Where a pointer is in room coordinates, whatever size the room is drawn at. */
   function at(event: PointerEvent) {
     const rect = room!.getBoundingClientRect();
     return {
-      x: (event.clientX - rect.left) / scale + (fill ? bounds.x : 0),
-      y: (event.clientY - rect.top) / scale + (fill ? bounds.y : 0),
+      x: (event.clientX - rect.left) / scale + (fill ? bounds.x : floor.x),
+      y: (event.clientY - rect.top) / scale + (fill ? bounds.y : floor.y),
     };
   }
 
   function hold(event: PointerEvent, held: Grab) {
     if (!draggable) return;
+    dragFloor = canvasBounds(store.seats, store.anchors);
     dragging = held;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
@@ -66,7 +75,7 @@
         (item.id === anchor.id ? { ...item, ...next } : item));
       return;
     }
-    // Anchors land by the same rule as desks: on the grid, never off the top or left.
+    // Anchors land by the same rule as desks; negative positions extend the room.
     const spot = placeSeat(point.x - dragging.offsetX, point.y - dragging.offsetY, snapping);
     if (dragging.kind === "seat") {
       store.seats = store.seats.map((seat) =>
@@ -92,6 +101,7 @@
       }
     }
     dragging = null;
+    dragFloor = null;
   }
 
   let held = $derived(dragging && dragging.kind !== "size" ? dragging.id : null);
@@ -99,8 +109,8 @@
 
 <div class="canvas" class:snapping class:fill
   bind:clientWidth={box.width} bind:clientHeight={box.height}
-  style:width={fill ? null : `${extent.width}px`}
-  style:height={fill ? null : `${extent.height}px`}>
+  style:width={fill ? null : `${floor.width}px`}
+  style:height={fill ? null : `${floor.height}px`}>
   <div class="room" bind:this={room}
     style:width="{size.width}px" style:height="{size.height}px"
     style:scale={fill ? scale : null}>
@@ -109,8 +119,8 @@
       {@const chosen = selected?.kind === "anchor" && selected.id === anchor.id}
       <div class="anchor" class:movable={draggable} class:dragging={held === anchor.id}
         class:selected={chosen} class:blank={!anchor.label.trim()}
-        style:left="{anchor.x - (fill ? bounds.x : 0)}px"
-        style:top="{anchor.y - (fill ? bounds.y : 0)}px"
+        style:left="{anchor.x - (fill ? bounds.x : floor.x)}px"
+        style:top="{anchor.y - (fill ? bounds.y : floor.y)}px"
         style:width="{anchor.width}px" style:height="{anchor.height}px">
         <!-- Anchors are furniture, not controls: outside the layout editor they are not
         something to tab to, and nothing happens if you reach one. -->
@@ -142,8 +152,8 @@
         class:faded={label?.faded}
         class:empty={!label?.text}
         class:strong={label?.strong}
-        style:left="{seat.x - (fill ? bounds.x : 0)}px"
-        style:top="{seat.y - (fill ? bounds.y : 0)}px"
+        style:left="{seat.x - (fill ? bounds.x : floor.x)}px"
+        style:top="{seat.y - (fill ? bounds.y : floor.y)}px"
         style:width="{SEAT_SIZE}px" style:height="{SEAT_SIZE}px"
         style:background={label?.color}
         onpointerdown={(event) => lift(event, "seat", seat)}

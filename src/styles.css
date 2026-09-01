@@ -810,6 +810,13 @@ furniture, read as fixtures rather than seats, and stay out of the way of a drag
 .unseated h2 {
   font-size: 1.1rem;
 }
+.unseated-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 .unseated ul {
   display: flex;
   flex-wrap: wrap;
