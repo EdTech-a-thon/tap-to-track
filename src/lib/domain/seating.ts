@@ -23,20 +23,37 @@ export function boxesOf(seats: Seat[], anchors: Anchor[] = []): Box[] {
 
 /** Seats snap while dragging, not in storage, so a snapped Layout is ordinary data. */
 export function snap(value: number, snapping: boolean, grid = GRID): number {
-  if (!snapping) return Math.round(value);
-  return Math.round(value / grid) * grid;
+  const snapped = snapping
+    ? Math.round(value / grid) * grid
+    : Math.round(value);
+  return Object.is(snapped, -0) ? 0 : snapped;
 }
 
-/** Where a dragged Seat lands: snapped if snapping is on, never off the top or left. */
+/** Where a dragged Seat lands. Negative positions let the room grow upward and leftward. */
 export function placeSeat(
   x: number,
   y: number,
   snapping: boolean,
 ): { x: number; y: number } {
   return {
-    x: Math.max(0, snap(x, snapping)),
-    y: Math.max(0, snap(y, snapping)),
+    x: snap(x, snapping),
+    y: snap(y, snapping),
   };
+}
+
+/** The editable floor around the room, including space to add furniture on every side. */
+export function canvasBounds(
+  seats: Seat[],
+  anchors: Anchor[] = [],
+  pad = SEAT_SIZE + GRID * 2,
+): Box {
+  const boxes = boxesOf(seats, anchors);
+  const step = SEAT_SIZE + GRID * 2;
+  const left = Math.min(0, ...boxes.map((box) => box.x)) - pad;
+  const top = Math.min(0, ...boxes.map((box) => box.y)) - pad;
+  const right = Math.max(step * 6, ...boxes.map((box) => box.x + box.width)) + pad;
+  const bottom = Math.max(step * 4, ...boxes.map((box) => box.y + box.height)) + pad;
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 /** How big a dragged corner leaves an Anchor: on the grid, never too small to read. */
