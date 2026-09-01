@@ -97,13 +97,6 @@ class is always in the same place just above the room. -->
 </p>
 
 <div class="seating">
-  <!-- Lifting a seated student is delegated here, since the desks are drawn by SeatCanvas. -->
-  <div class="seating-room" onpointerdown={liftFromSeat} role="presentation">
-    <SeatCanvas
-      seatLabel={(seat) => ({ text: occupant.get(seat.id)?.name ?? "" })}
-    />
-  </div>
-
   <div class="unseated">
     <div class="unseated-heading">
       <h2>Not seated <span class="hint">({unseated.length})</span></h2>
@@ -131,6 +124,14 @@ class is always in the same place just above the room. -->
         {/each}
       </ul>
     {/if}
+  </div>
+
+  <!-- Lifting a seated student is delegated here, since the desks are drawn by SeatCanvas. -->
+  <div class="seating-room" onpointerdown={liftFromSeat} role="presentation">
+    <SeatCanvas
+      compact
+      seatLabel={(seat) => ({ text: occupant.get(seat.id)?.name ?? "" })}
+    />
   </div>
 </div>
 

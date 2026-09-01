@@ -117,16 +117,20 @@ export function layoutExtent(
 }
 
 /** The tight box the room sits in, so it can be centred and grown to fill a screen. */
-export function roomBounds(seats: Seat[], anchors: Anchor[] = []): Box {
+export function roomBounds(
+  seats: Seat[],
+  anchors: Anchor[] = [],
+  pad = 0,
+): Box {
   const boxes = boxesOf(seats, anchors);
   if (!boxes.length) return { x: 0, y: 0, width: SEAT_SIZE, height: SEAT_SIZE };
-  const x = Math.min(...boxes.map((box) => box.x));
-  const y = Math.min(...boxes.map((box) => box.y));
+  const x = Math.min(...boxes.map((box) => box.x)) - pad;
+  const y = Math.min(...boxes.map((box) => box.y)) - pad;
   return {
     x,
     y,
-    width: Math.max(...boxes.map((box) => box.x + box.width)) - x,
-    height: Math.max(...boxes.map((box) => box.y + box.height)) - y,
+    width: Math.max(...boxes.map((box) => box.x + box.width)) - x + pad,
+    height: Math.max(...boxes.map((box) => box.y + box.height)) - y + pad,
   };
 }
 

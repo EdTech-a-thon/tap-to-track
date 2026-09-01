@@ -1,6 +1,6 @@
 <script lang="ts">
   import {
-    SEAT_SIZE, canvasBounds, fitScale, placeSeat, roomBounds, sizeAnchor,
+    GRID, SEAT_SIZE, canvasBounds, fitScale, placeSeat, roomBounds, sizeAnchor,
   } from "$lib/domain/seating";
   import { store } from "$lib/store.svelte";
   import type { Anchor, Seat } from "$lib/domain/types";
@@ -10,12 +10,14 @@
     | { kind: "seat" | "anchor"; id: string; offsetX: number; offsetY: number }
     | { kind: "size"; id: string };
 
-  let { snapping = true, draggable = false, fill = false, selected = null,
+  let { snapping = true, draggable = false, fill = false, compact = false, selected = null,
     seatLabel, onSeatClick, onAnchorClick }: {
     snapping?: boolean;
     draggable?: boolean;
     /** Grow the desks to fill the space the canvas is given, keeping their shape and spacing. */
     fill?: boolean;
+    /** Keep the read-only chart close to its furniture instead of showing the editing floor. */
+    compact?: boolean;
     /** The one piece of furniture being worked on, whichever kind it is. */
     selected?: { kind: "seat" | "anchor"; id: string } | null;
     seatLabel?: (seat: Seat) => { text: string; color?: string; faded?: boolean; strong?: boolean };
@@ -29,7 +31,12 @@
   let box = $state({ width: 0, height: 0 });
 
   let bounds = $derived(roomBounds(store.seats, store.anchors));
-  let floor = $derived(dragFloor ?? canvasBounds(store.seats, store.anchors));
+  let floor = $derived(
+    dragFloor ??
+      (compact
+        ? roomBounds(store.seats, store.anchors, GRID)
+        : canvasBounds(store.seats, store.anchors)),
+  );
   // Filling shrink-wraps the room around the furniture first, so the empty margins don't take space.
   let size = $derived(fill ? bounds : floor);
   let scale = $derived(fill ? fitScale(bounds, box) : 1);

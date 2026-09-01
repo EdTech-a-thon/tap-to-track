@@ -80,6 +80,15 @@ test("the room's own box ignores the empty floor around it", () => {
   });
 });
 
+test("the room can include a small border around its furniture", () => {
+  expect(roomBounds([seat("a", 100, 60)], [], GRID)).toEqual({
+    x: 80,
+    y: 40,
+    width: SEAT_SIZE + GRID * 2,
+    height: SEAT_SIZE + GRID * 2,
+  });
+});
+
 test("an Anchor is part of the room, so the box and the canvas both hold it", () => {
   expect(
     roomBounds([seat("a", 100, 100)], [anchor("board", 0, 0, 400, 60)]),
