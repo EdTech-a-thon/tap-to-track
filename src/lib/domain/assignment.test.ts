@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  randomlySeatClass,
   seatDeletionImpact,
   seatStudent,
   unseatClass,
@@ -85,4 +86,28 @@ test("emptying every desk clears one Class and leaves the others sitting", () =>
 test("emptying the desks keeps everyone on the roster", () => {
   const students = [student("maya", "p2", "s1"), student("sam", "p2", "s2")];
   expect(unseatClass(students, "p2").map((s) => s.id)).toEqual(["maya", "sam"]);
+});
+
+test("random seating uses each existing desk at most once", () => {
+  const students = [
+    student("maya", "p2", "old-1"),
+    student("sam", "p2", null),
+    student("ola", "p2", "old-2"),
+  ];
+  const randomValues = [0, 0];
+  const after = randomlySeatClass(
+    students,
+    "p2",
+    ["s1", "s2"],
+    () => randomValues.shift() ?? 0,
+  );
+
+  expect(after.map((s) => s.seatId)).toEqual(["s2", "s1", null]);
+});
+
+test("random seating leaves other Classes untouched", () => {
+  const students = [student("maya", "p2", null), student("ben", "p6", "s1")];
+  const after = randomlySeatClass(students, "p2", ["s1"], () => 0);
+
+  expect(after.find((s) => s.id === "ben")?.seatId).toBe("s1");
 });

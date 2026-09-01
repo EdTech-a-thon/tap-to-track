@@ -5,12 +5,20 @@
 
   let { classId }: { classId: string } = $props();
 
-  let carry = $state<{ studentId: string; name: string; x: number; y: number } | null>(null);
+  let carry = $state<{
+    studentId: string;
+    name: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  let randomizing = $state(false);
 
   let students = $derived(store.studentsIn(classId));
   let unseated = $derived(unseatedIn(store.students, classId));
   let seated = $derived(students.length - unseated.length);
-  let occupant = $derived(new Map(students.filter((s) => s.seatId).map((s) => [s.seatId, s])));
+  let occupant = $derived(
+    new Map(students.filter((s) => s.seatId).map((s) => [s.seatId, s])),
+  );
 
   function lift(event: PointerEvent, studentId: string, name: string) {
     event.preventDefault();
@@ -18,7 +26,9 @@
   }
 
   function liftFromSeat(event: PointerEvent) {
-    const seat = (event.target as HTMLElement).closest<HTMLElement>("[data-seat-id]");
+    const seat = (event.target as HTMLElement).closest<HTMLElement>(
+      "[data-seat-id]",
+    );
     const student = seat ? occupant.get(seat.dataset.seatId!) : undefined;
     if (student) lift(event, student.id, student.name);
   }
@@ -32,15 +42,31 @@
    * an afternoon's seating is easy to lose and nothing here can be undone from the toast.
    */
   function emptyDesks() {
-    const name = store.classes.find((cls) => cls.id === classId)?.name ?? "this class";
-    if (!confirm(`Take all ${seated} student${seated === 1 ? "" : "s"} in ${name} out of their desks? The desks stay where they are, and everyone stays on the roster.`)) return;
+    const name =
+      store.classes.find((cls) => cls.id === classId)?.name ?? "this class";
+    if (
+      !confirm(
+        `Take all ${seated} student${seated === 1 ? "" : "s"} in ${name} out of their desks? The desks stay where they are, and everyone stays on the roster.`,
+      )
+    )
+      return;
     store.unseatClass(classId);
+  }
+
+  async function randomlySeatAll() {
+    randomizing = true;
+    try {
+      await store.randomlySeatClass(classId);
+    } finally {
+      randomizing = false;
+    }
   }
 
   function drop(event: PointerEvent) {
     if (!carry) return;
     const under = document.elementFromPoint(event.clientX, event.clientY);
-    const seatId = under?.closest<HTMLElement>("[data-seat-id]")?.dataset.seatId;
+    const seatId =
+      under?.closest<HTMLElement>("[data-seat-id]")?.dataset.seatId;
     if (seatId) store.seatStudent(carry.studentId, seatId);
     else if (under?.closest(".unseated")) store.unseatStudent(carry.studentId);
     carry = null;
@@ -52,34 +78,53 @@
 <!-- The class sits on the same row here as it does while teaching, so switching
 class is always in the same place just above the room. -->
 <div class="seating-bar">
-  <label class="class-picker">Class
+  <label class="class-picker"
+    >Class
     <select bind:value={store.activeClassId}>
-      {#each store.classes as cls}<option value={cls.id}>{cls.name}</option>{/each}
+      {#each store.classes as cls}<option value={cls.id}>{cls.name}</option
+        >{/each}
     </select>
   </label>
-  <button class="secondary" disabled={!seated} onclick={emptyDesks}>Unseat all students</button>
+  <button class="secondary" disabled={!seated} onclick={emptyDesks}
+    >Unseat all students</button
+  >
 </div>
 
 <p class="hint">
-  Drag a student onto a desk. Dropping onto a taken desk swaps the two. Dragging someone
-  down to the list leaves them on the roster but out of a seat — they can still be tapped.
+  Drag a student onto a desk. Dropping onto a taken desk swaps the two. Dragging
+  someone down to the list leaves them on the roster but out of a seat — they
+  can still be tapped.
 </p>
 
 <div class="seating">
   <!-- Lifting a seated student is delegated here, since the desks are drawn by SeatCanvas. -->
   <div class="seating-room" onpointerdown={liftFromSeat} role="presentation">
-    <SeatCanvas seatLabel={(seat) => ({ text: occupant.get(seat.id)?.name ?? "" })} />
+    <SeatCanvas
+      seatLabel={(seat) => ({ text: occupant.get(seat.id)?.name ?? "" })}
+    />
   </div>
 
   <div class="unseated">
-    <h2>Not seated <span class="hint">({unseated.length})</span></h2>
+    <div class="unseated-heading">
+      <h2>Not seated <span class="hint">({unseated.length})</span></h2>
+      <button
+        class="secondary"
+        disabled={!students.length || !store.seats.length || randomizing}
+        onclick={randomlySeatAll}
+      >
+        {randomizing ? "Seating…" : "Randomly seat all"}
+      </button>
+    </div>
     {#if !unseated.length}
       <p class="hint">Everyone has a desk.</p>
     {:else}
       <ul>
         {#each unseated as student (student.id)}
           <li>
-            <button class="chip" onpointerdown={(event) => lift(event, student.id, student.name)}>
+            <button
+              class="chip"
+              onpointerdown={(event) => lift(event, student.id, student.name)}
+            >
               {student.name}
             </button>
           </li>
@@ -90,5 +135,7 @@ class is always in the same place just above the room. -->
 </div>
 
 {#if carry}
-  <div class="carry" style:left="{carry.x}px" style:top="{carry.y}px">{carry.name}</div>
+  <div class="carry" style:left="{carry.x}px" style:top="{carry.y}px">
+    {carry.name}
+  </div>
 {/if}

@@ -2,6 +2,7 @@ import { pb } from "$lib/pb";
 import { newId, outbox } from "$lib/outbox.svelte";
 import { auth } from "$lib/auth.svelte";
 import {
+  randomlySeatClass,
   seatStudent,
   unseatClass,
   unseatStudent,
@@ -428,6 +429,18 @@ class Store {
   async unseatClass(classId: string) {
     const before = this.students;
     const after = unseatClass(before, classId);
+    this.students = after;
+    await this.persistSeats(before, after);
+  }
+
+  /** Gives every Student in one Class a random available desk. */
+  async randomlySeatClass(classId: string) {
+    const before = this.students;
+    const after = randomlySeatClass(
+      before,
+      classId,
+      this.seats.map((seat) => seat.id),
+    );
     this.students = after;
     await this.persistSeats(before, after);
   }
