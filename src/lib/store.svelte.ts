@@ -141,13 +141,19 @@ class Store {
 
   /** A teacher who has configured nothing still gets a usable popup. */
   private async seedDefaultBehaviors() {
-    const created = await Promise.all(
-      DEFAULT_BEHAVIORS.map((behavior, position) =>
-        pb
-          .collection("behaviors")
-          .create({ ...behavior, position, owner: owner() }),
-      ),
-    );
+    const created = [];
+    for (const [position, behavior] of DEFAULT_BEHAVIORS.entries()) {
+      created.push(
+        await pb.collection("behaviors").create({
+          name: behavior.name,
+          color: behavior.color,
+          mode: behavior.mode,
+          position,
+          away: behavior.away === true,
+          owner: owner(),
+        }),
+      );
+    }
     this.behaviors = created.map((r) => ({
       id: r.id,
       name: r.name,
