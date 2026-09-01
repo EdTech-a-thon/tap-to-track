@@ -1351,7 +1351,8 @@ the room behind it are recognisably the same place. */
   width: min(1100px, 100%);
   padding-bottom: 3rem;
 }
-.home .lede {
+.home .lede,
+.doc .lede {
   max-width: 46rem;
   color: #4f635c;
   font-size: 1.1rem;
@@ -1592,15 +1593,33 @@ desk and simply centres itself. */
   color: #4f635c;
   line-height: 1.6;
 }
-.home-footer {
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1.5rem;
   padding: 2.5rem 1.25rem 3rem;
   border-top: 1px solid var(--line);
   text-align: center;
-  color: #657770;
 }
-.home-footer p {
-  margin: 0 0 0.3rem;
+.site-footer a {
+  color: #657770;
   font-size: 0.9rem;
+  text-decoration: none;
+}
+.site-footer a:hover {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.footer-built {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.footer-built img {
+  display: block;
 }
 @media (max-width: 860px) {
   .home-hero {
@@ -1620,4 +1639,92 @@ desk and simply centres itself. */
     flex: 1;
     text-align: center;
   }
+}
+
+/* The public reading pages — /about and /privacy. Narrower than the homepage,
+   because these are read rather than scanned. */
+.doc {
+  width: min(50rem, 100%);
+}
+.doc h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-bottom: 0.5rem;
+}
+.doc .lede {
+  margin-bottom: 2rem;
+}
+.doc .card {
+  margin-bottom: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.doc .card h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.75rem;
+}
+.doc .card p {
+  margin-bottom: 0;
+  line-height: 1.65;
+}
+.doc .card p + p {
+  margin-top: 1rem;
+}
+.doc .card a {
+  color: var(--green);
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
+.doc .card .primary {
+  display: inline-block;
+  margin-top: 1.25rem;
+  color: white;
+  font-weight: 700;
+  text-decoration: none;
+}
+.card-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.card-heading h2 {
+  margin: 0;
+}
+.card-heading .mark {
+  flex: none;
+}
+.promise {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.9;
+}
+/* The photo is pinned to the page like a print, slightly askew. */
+.snapshot {
+  width: min(32rem, 100%);
+  margin: 2rem auto 0;
+  padding: 0.75rem 0.75rem 1.5rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow: 0 10px 24px #173c331f;
+  transform: rotate(-1deg);
+}
+.snapshot img {
+  display: block;
+  width: 100%;
+  background: #eae5d9;
+}
+.snapshot figcaption {
+  padding-top: 1.1rem;
+  text-align: center;
+  font-size: 1.15rem;
+  color: #4f635c;
+  font-family:
+    "Segoe Script", "Bradley Hand", "Snell Roundhand", "Comic Sans MS", cursive;
+}
+.doc-link {
+  color: var(--green);
+  font-weight: 500;
+  text-underline-offset: 3px;
 }
