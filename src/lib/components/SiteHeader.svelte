@@ -6,7 +6,7 @@
 
 <header class="topbar">
   <a class="brand" href="/" aria-label="Tap and Tally home"
-    ><span>T&amp;T</span><strong>Tap and Tally</strong></a
+    ><img src="/icon.svg" alt="" width="42" height="42" /><strong>Tap and Tally</strong></a
   >
   <a class="primary topbar-cta" href="/chart">{auth.teacher ? "Open your chart" : "Sign in"}</a>
 </header>

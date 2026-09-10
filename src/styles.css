@@ -84,17 +84,9 @@ h2 {
   color: inherit;
   text-decoration: none;
 }
-.brand > span {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 13px 4px;
-  color: white;
-  background: var(--green);
-  box-shadow: inset -5px -5px #103e34;
-  font: 600 1.05rem "Newsreader";
-  letter-spacing: -0.02em;
+.brand > img {
+  display: block;
+  flex: none;
 }
 /* The homepage's only top-bar action sits at the far right, away from the wordmark. */
 .topbar-cta {

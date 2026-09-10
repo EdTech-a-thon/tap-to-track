@@ -20,7 +20,7 @@
   {#if !ui.teaching}
     <header class="topbar">
       <a class="brand" href="/chart" aria-label="Tap and Tally home"
-        ><span>T&amp;T</span><strong>Tap and Tally</strong></a
+        ><img src="/icon.svg" alt="" width="42" height="42" /><strong>Tap and Tally</strong></a
       >
       <nav aria-label="Main sections">
         {#each sections as section}
