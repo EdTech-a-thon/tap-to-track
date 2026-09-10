@@ -90,7 +90,12 @@ class Store {
 
   async load() {
     this.clearedAt = readCleared();
-    if (!owner()) return;
+    // A sign-in that has run out reads as a guest at the server: every list comes back
+    // empty and the seeding below is refused. Ask for a fresh sign-in instead.
+    if (!pb.authStore.isValid) {
+      auth.signOut();
+      return;
+    }
     outbox.start();
     const [classes, students, behaviors, seats, anchors, taps] =
       await Promise.all([

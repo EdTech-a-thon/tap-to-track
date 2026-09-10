@@ -17,6 +17,10 @@ class Auth {
       } catch {
         pb.authStore.clear();
       }
+    } else {
+      // An expired sign-in is no sign-in: left in place it looks signed in here while the
+      // server treats every request as a stranger's.
+      pb.authStore.clear();
     }
     this.ready = true;
   }
